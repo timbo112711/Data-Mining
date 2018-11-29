@@ -1,0 +1,113 @@
+---
+title: "AssociationMarkdown"
+author: "Ireti Fasere"
+date: "December 6, 2017"
+output: 
+html_document:
+  keep_md:True
+---
+
+
+## R Markdown
+#Introduction
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+1. #Setting File Directory 
+getwd()
+setwd("D:/DATAMINING")
+```
+
+```{r}
+# Importing Datasets
+Orig = read.csv('./online_retail.csv',header =TRUE, sep=",",na.strings=c("","NA"))
+#Checking Dataset
+head(Orig)
+tail(Orig)
+```
+
+```{r}
+#Installing Library Packages
+install.packages("readr")
+library(dplyr)
+library(tidyr)
+library(arules)
+library(arulesViz)
+library(grid)
+library(methods)
+library(ggplot2)
+
+```
+
+```{r}
+2.# Create baskets dataframe
+df_baskets <- Orig %>% 
+group_by(InvoiceNo,InvoiceDate) %>%
+summarise(basket = as.vector(list(StockCode)))
+```
+
+```{r}
+#Compute transactions
+transactions <- as(df_baskets$basket, "transactions")
+```
+
+```{r}
+#Analyzing the baskets
+item_frequencies <- itemFrequency(transactions, type="a")
+support <- 0.02
+freq_items <- sort(item_frequencies, decreasing = F)
+freq_items <- freq_items[freq_items>support*length(transactions)]
+```
+
+```{r}
+# run the apriori algorithm
+support <- 0.02
+itemsets <- apriori(transactions, parameter=list(target= "frequent itemsets",minlen = 2, support=0.02, conf = 0.8))
+# sort and display frequent itemsets 
+itemsets <- sort(itemsets, by="support") 
+inspect(head(itemsets, n=10))
+length(itemsets)
+```
+
+```{r}
+# get maximal itemsets
+is_max <- itemsets[is.maximal(itemsets)]
+inspect(head(sort(is_max, by="support")))
+length(is_max)
+```
+
+```{r}
+# generate some rules from the frequent itemsets
+rules <- apriori(transactions, parameter = list(minlen=2,supp=0.02, conf=0.8))
+inspect(head(rules, n=10))
+quality(head(rules))
+
+
+rules <- sort(rules, by="lift")
+inspect(head(rules, n=10))
+```
+
+```{r}
+plot(rules)   
+plot(rules, method="grouped matrix")
+inspect(rules)
+length(rules)
+```
+
+
+```{r}
+par(mar=c(5,18,2,2)+.1)
+sets_order_supp <- DATAFRAME(sort(itemsets, by="support", decreasing = F))
+barplot(sets_order_supp$support, names.arg=sets_order_supp$items, xlim=c(0,0.02), horiz = T, las = 2, cex.names = 0.2, main = "Frequent Itemsets")
+mtext(paste("support:",support), padj = .8)
+```
+
+
+
+```{r rules, echo=FALSE}
+plot(rules)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -1,0 +1,340 @@
+---
+title: "Lab 3 - Association Rule Mining of UCI Online Retail Data"
+output: pdf_document
+author: Peter Kouvaris, Daniel Freeman, Ireti Fasere, & Tim McWilliams
+github: https://github.com/htpeter/pdti_DataMining/tree/master/Lab_3
+fig_width: 6 
+fig_height: 4 
+---
+
+```{r echo=FALSE, results='hide', message=FALSE}
+# import things here, error messages will be hidden
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(tidyr)
+library(grid)
+library(methods)
+library(ggplot2)
+library(arules)
+library(arulesViz)
+library(png)
+library(grid)
+```
+
+
+## Business Understanding
+
+Our dataset contains all customer transactions for a UK-based online retailer during the period between January 12, 2010 and September 12, 2011. The company mainly sells unique all-occasion gifts and many of its customers are wholesalers.
+
+A good association rule algorithm will yield itemsets that highlight important patterns in customer purchase behavior. When reviewed by a human with context about the business, these patterns should make logical sense. Association rule mining is a highly subjective process, where human insight is needed to tweak the parameters of the model until outputs are representative of some underlying pattern.
+
+Association rule mining makes sense for transactional data like these because it provides information relevant to making marketing and purchasing decisions. Stakeholders are primarily interested in maximizing profit for their company; this is achieved by either reducing costs or increasing revenues. Our dataset includes large amounts of physical goods purchased at varying volumes over the course of 20 months. Optimizing this problem through association rule mining will give stakeholders insights that may help improve margins. 
+
+## Data Understanding
+
+### Meaning & Variable Type
+The header of our raw data file as downloaded from UCI's website[^1] is printed in the code blocks below. This is followed by a description of the variables and then data scale is reviewed. The most relevant of these for association rule mining are the unique counts for class variables. Numeric variables will be binned based on percentiles, but range is still relevant and should be noted.
+
+[^1]: UCI Online Retail Data Set: http://archive.ics.uci.edu/ml/datasets/online+retail
+
+```{r echo=FALSE, message=FALSE}
+df = read.csv('./online_retail.csv')
+kable(df[1:5,1:5],caption='Raw Data Header - Cols 1:5') %>%
+    column_spec(1,width = "10em")
+
+kable(df[1:5,6:8],caption='Raw Data Header - Cols 6:8') %>%
+    column_spec(1,width = "10em")
+```
+
+The column data types are as follows:
+```{}
+ Column Name  Data Type                 Description
+_____________________________________________________________________________________
+InvoiceNo   | int                    | categorical var dictating transaction instance
+StockCode   | string                 | denotes stock sold in line item
+Description | string                 | name for stock, although not 1:1
+Quantity    | int                    | quantity of stock purchased
+InvoiceDate | datetime MM/DD/YY H:MM | ISO format of time item was purchased
+UnitPrice   | float                  | price in GBP of 1 quantity
+CustomerID  | int                    | categorical var dictating customer 
+Country     | string                 | country of customer
+_____________________________________________________________________________________
+```
+
+```{python engine.path="/anaconda3/bin/python"}
+import pandas as pd
+py_df = pd.read_csv('./online_retail.csv')
+print("Unique Counts")
+for i in py_df.columns:
+  count = len(py_df[i].unique())
+  print(""" %s - %s """ % (i,str(count)))
+  
+print("NaN Counts")
+```
+
+#### Quality, Shape & Scale
+
+The raw data looks to have already been partially pre-processed. The primary source of NAs are in CustomerID, where an identification number is not tied to a transaction. This will be irrelevant to both of our mining reviews and can be left as is. 
+
+
+```{python engine.path="/anaconda3/bin/python"}
+import pandas as pd
+#import numpy as np
+import seaborn as sns
+df_cpy = pd.read_csv('./online_retail.csv')
+sns.distplot((df_cpy['Quantity']))
+```
+
+#### Summary of Dataframe
+
+```{r}
+summary(df)
+```
+
+### Data Processing Methods
+Our raw data is most useful for association rule mining when transformed two different ways. The first transformation was created using a *group by* command on InvoiceNo to create transaction baskets. This allowed us to use association algorithms to analyze what pairs of goods are purchased. The second transformation was created using various methods on numeric variables to transform them into categorical so that we explore patterns separate from order content like time, volume and frequency[^2].
+
+[^2]: https://github.com/htpeter/pdti_DataMining/blob/master/Lab_3/pre-processing.ipynb
+
+The header of this data set is shown in the figure below:
+
+```{r echo=FALSE, message=FALSE}
+df_pp <- read.csv('./data_cleaned.csv')
+kable(df_pp[1:5,1:5],caption='Processed Data Header - Cols 1:5') %>%
+    column_spec(1,width = "10em")
+
+kable(df_pp[1:5,6:9],caption='Processed Data Header - Cols 6:9') %>%
+    column_spec(1,width = "10em")
+```
+
+### Attribute Visualization
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+df_numeric <- read.csv('./numeric_clean.csv')
+```
+
+When looking at the frequency of items sold per month we can conclude that there are more items sold at the end of the year, specifically October through December. This is because of the holidays. In November people are buying things for Christmas or Hanukah. There is also a high volume of items sold in January. In January, people continue buying items with their money from the holidays. 
+
+```{r echo=FALSE}
+# Month Sold
+hist(df_numeric$month_sold, col = "blue", main = "Items sold per Month", xlab = "Month Sold", xlim = c(1,12), breaks = 12)
+```
+ 
+The items sold per day tells a compelling story. More items were sold on the first day of the month and then the number gradually decreases as the month progresses. There were around 34,000 items sold on the first of the month. After the first, the next highest selling day was the seventh at around 25,000 items. 
+
+```{r echo=FALSE}
+# Day sold
+hist(df_numeric$day, main = "Items sold per Day", col = "red", xlab = "Day Sold", xlim = c(1,31), breaks = 31)
+```
+
+#### Price Groups
+
+The unit prices were categorized into five different levels. Price level 1 represents the least expensive items, $0.00 to $0.86. Price level 2 represents items that are priced between $0.85 and $1.65. Price level 3 represents items that are between $1.65 and $2.59. Price level 4 represents items that cost between $2.59 and $4.95. Price level 5 represents items that are between $4.95 and $38,970. Price level 4 had the most items purchased at 123,061 items. Price level 5 had the least items purchased at 92,709 items.
+
+```{r echo=FALSE}
+# Price Groups
+counts2 = table(df_numeric$price_groups)
+names(counts2) <- c("", "Price Level 1 - 113,124", "Price Level 2 - 119,971", "Price Level 3 - 93,042", 
+                    "Price Level 4 - 123,061", "Price Level 5 - 92,709")
+pie(counts2, main = "Frequency of Price Levels (1-5)", col = c("cornsilk","purple", "yellow", 
+                                                               "cyan", "white", "red")) 
+```
+
+#### Quantity Groups 
+
+```{}
+Quantity Group 1 [0-1]
+Quantity Group 2 [2]
+Quantity Group 3 [3-6]
+Quantity Group 4 [7-13]
+Quantity Group 5 [14-80,995]
+```
+
+
+```{r echo=FALSE}
+
+# Quantity Groups
+counts3 = table(df_numeric$quantity_groups)
+names(counts3) <- c("","Quantity Level 1 - 158,850", "Quantity Level 2 - 81,829", 
+                    "Quantity Level 3 - 128,230", "Quantity Level 4 - 102,972",
+                    "Quantity Level 5 - 70,027")
+pie(counts3, main = "Frequency of Quantity Levels (1-5)", col = c("purple", "yellow", 
+                                                               "orange", "blue", "green")) 
+
+```
+
+
+# Models
+
+Our models look at two primary measures of interest within our data. The first measure is what types of items are commonly purchased together. The second is how metadata for transactions relate to each other. We find that both these views provide varied business insight. The first highlights what types of goods should be considered related from an inventory and marketing standpoint. The second highlights macro level data that would assist management in navigating yearly trends.
+
+## View 1 - Inventory Itemsets Made on Invoice Level 
+
+The first analysis will give us information regarding what products are purchsed together. We begin by importing the raw data and creating baskets of transactions. Dplyr is very useful for this.
+
+```{r}
+Orig = read.csv('./online_retail.csv',header=TRUE, sep=",",na.strings=c("","NA"))
+# Create baskets dataframe
+df_baskets <- Orig %>% 
+group_by(InvoiceNo,InvoiceDate) %>%
+summarise(basket = as.vector(list(StockCode)))
+#Compute transactions
+transactions <- as(df_baskets$basket, "transactions")
+```
+
+We then review the most common baskets.
+
+```{r}
+item_frequencies <- itemFrequency(transactions, type="a")
+support <- 0.02
+freq_items <- sort(item_frequencies, decreasing = F)
+freq_items <- freq_items[freq_items>support*length(transactions)]
+```
+
+Now that the data base been sorted into baskets where each item purchased at the same time is in the same row, the apriori function can effectively analyze patterns. In our tests we found the below support and confidence parameters to return a narrow set of heavily supported items. We then inspect them to see the general structure of our output. 
+
+```{r}
+# run the apriori algorithm
+support <- 0.02
+itemsets <- apriori(transactions, parameter=list(target= "frequent itemsets",
+                                  minlen = 2, support=0.02, conf = 0.8))
+# sort and display frequent itemsets 
+itemsets <- sort(itemsets, by="support") 
+inspect(head(itemsets, n=10))
+length(itemsets)
+```
+
+The above itemsets represent items commonly purchased together. Interestingly, the apriori rule has returned only itemsets with length of 2. 
+
+Below we translated these StockCodes to Descriptions.
+
+```{}
+['22386','85099B'] - [JUMBO BAG PINK POLKADOT, JUMBO BAG RED RETROSPOT]
+['22697','22699'] - [GREEN REGENCY TEACUP AND SAUCER, ROSES REGENCY TEACUP AND SAUCER ]
+['21931','85099B'] - [JUMBO STORAGE BAG SUKI, JUMBO BAG RED RETROSPOT]
+['22411','85099B'] - [JUMBO SHOPPER VINTAGE RED PAISLEY, JUMBO BAG RED RETROSPOT]
+['20725','22383'] - [LUNCH BAG RED SPOTTY, LUNCH BAG SUKI DESIGN]
+['20725','20727'] - [LUNCH BAG RED SPOTTY, LUNCH BAG  BLACK SKULL.]
+['22726','22727'] - [ALARM CLOCK BAKELIKE GREEN, ALARM CLOCK BAKELIKE RED ]
+['22697','22698'] - [GREEN REGENCY TEACUP AND SAUCER, PINK REGENCY TEACUP AND SAUCER]
+['22698','22699'] - [PINK REGENCY TEACUP AND SAUCER, ROSES REGENCY TEACUP AND SAUCER ]
+['20725','22384'] - [LUNCH BAG RED RETROSPOT, LUNCH BAG PINK POLKADOT]
+```
+
+There is a substantial amount of overlap in purchases where the same items are being purchased in different style variants. For example, a customer bought both a red poka dotted lunch bag and a skull design lunch bag. If we coerce the algorithm to select mininmum length 3 itemsets, will we see this pattern expand?
+
+```{r}
+# run the apriori algorithm
+support <- 0.02
+itemsets <- apriori(transactions, 
+          parameter=list(target= "frequent itemsets",
+          minlen = 3, support=0.02, conf = 0.8))
+# sort and display frequent itemsets 
+itemsets <- sort(itemsets, by="support") 
+inspect(head(itemsets, n=10))
+length(itemsets)
+```
+
+When the itemsets are limited to length of 3, we see only one instance. Not suprisingly, the most supported 2-itemset above is a subset of this 3-itemset.
+
+```{}
+[22697,22698,22699] - GREEN REGENCY TEACUP AND SAUCER, 
+PINK REGENCY TEACUP AND SAUCER,
+ROSES REGENCY TEACUP AND SAUCER
+```
+
+```{r}
+# generate some rules from the frequent itemsets
+rules <- apriori(transactions, parameter = list(minlen=2,supp=0.02, conf=0.8))
+inspect(head(rules, n=10))
+quality(head(rules))
+
+
+rules <- sort(rules, by="lift")
+inspect(head(rules, n=10))
+```
+
+```{r}
+plot(rules)   
+plot(rules, method="grouped matrix")
+inspect(rules)
+length(rules)
+```
+
+
+## View 2 - Buying Behavior Itemsets on Transaction Metadata Level
+
+The focus of this view is to explore patterns in transaction metadata, like quantity size with respect to datetime and customer identity. We use our preprocessed data set here with varying values for the support and confidence parameters. Country distorts the itemsets in both view 2 models, regardless of support and confidence. This is due to the retailer being based in the United Kindom with roughly 90% of its customers also based in the United Kingdom. This leads to the apriori rule overvaluing Country in itemsets. While most itemsets contain "United Kingdom", the patterns still exist within the itemsets less the Country variable.
+
+### View 2 Model 1 (minlen=2,supp=0.05, conf=0.8)
+
+The parameter selection in this model stems from default values used in the arules documentation. It returns 30 rules due to its lower support value. The most highly supported itemsets in this apriori test were related to the month sold. This highlights the seasonality inherent in these sales data.  
+
+```{r}
+  # generate some rules from the frequent itemsets
+rules <- apriori(df_pp, parameter = list(minlen=2,supp=0.05, conf=0.8))
+inspect(head(rules, n=10))
+quality(head(rules))
+
+rules <- sort(rules, by="lift")
+#inspect(head(rules, n=10))
+#interestMeasure(rules[1:10], method=c("phi", "gini"), trans=trans)
+
+plot(rules)  
+# added as img due to rmd scaling issues
+# plot(head(rules, n=5), method="grouped matrix")
+#inspect(rules)
+length(rules)
+```
+```{r fig.width=8, fig.height=16,echo=FALSE}
+img <- readPNG("./plot1_v1.png")
+grid.raster(img)
+```
+
+### View 2 Model 1 (minlen=2,supp=0.1, conf=0.8)
+
+Narrowing the support value yields a cleaner output, with very interesting rankings placed on different months, quantity groups and price groups.
+
+```{r}
+  # generate some rules from the frequent itemsets
+rules <- apriori(df_pp, parameter = list(minlen=2,supp=0.1, conf=0.8))
+# Print high support rules
+inspect(head(rules, n=10))
+quality(head(rules))
+
+rules <- sort(rules, by="lift")
+#inspect(head(rules, n=10))
+#interestMeasure(rules[1:10], method=c("phi", "gini"), trans=trans)
+
+plot(rules)   
+# added as img due to rmd scaling issues
+#plot(head(rules, n=5), method="grouped matrix")
+#inspect(rules)
+length(rules)
+```
+
+```{r fig.width=8, fig.height=16,echo=FALSE}
+img <- readPNG("./plot1_v2.png")
+grid.raster(img)
+```
+
+
+## Deployment
+
+### Usage & Further Data Collection
+
+This model serves businesses with information relevant to micro and macro scale trends happening in their industry. The micro scale information is pieced together from our first analysis, looking at what specific clients tend to purchase and how they purchase them. Understanding behaviors like these are key to deploying effective marketing campaigns that can lead to substantial lift. Lift is the increase in purchases from actions taken over what would have occurred if action had not been taken. The macro insights are information regarding the seasonality and volumes of goods purchased at these times. Just-in-time delivery methods and proper inventory management are paramount to running optimized wholesale businesses. This innovation was first made popular when Dell, leveraging a unique statistical understanding of the computer market, changed their delivery method to handle production only at the moment an order was made. Feeding this production method was a carefully implemented inventory system, ensuring that raw materials needed to meet orders always sat at a near zero level, reducing warehousing costs and increasing the average liquidity of business assets.
+
+What types of data would need to be collected to further improve these models? Any purchase data about similar goods would improve the scope, along with general trend data. General trend data allows for the business using these association models to contextualize their internal analyses with the view of the larger market. Context allows for a clear map of where the business sits related to its competitors and insights on how it could improve its own position.
+
+### Technical Implementation & Update
+
+The association rules presented above should be implemented into a regular reporting schedule, but not into an automated model. Running similar reviews of the data feeds every quarter would allow for trend tracking and improved insights. This would require an analyst to have access to the data feed and build queries that output current versions of the data we reviewed. Pre-processing scripts that would transform the data into a similar form as used above would allow for an analyst to import the data into R and review the output without much manual calibration. 
+
+If a company was inclined to leverage something like this in a product, like an inventory management system, then it should be implemented as one of several signals to purchase new goods. Association rules do not provide enough information alone to be the sole basis of a system.
+
+
+
+

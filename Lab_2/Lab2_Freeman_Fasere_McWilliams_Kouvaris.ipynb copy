@@ -1,0 +1,3555 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Lab 2 : Dan Freeman, Ireti Fasere, Tim McWilliams, Peter Kouvaris"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 0. Data Import + Source Overview\n",
+    "\n",
+    "Our team used UCI's Adult Census Data : https://archive.ics.uci.edu/ml/datasets/adult\n",
+    "\n",
+    "While this notebook is independent regarding the review of assumptions necessary when building classifiers, more extensive review of this data set can be found here: https://github.com/htpeter/pdti_DataMining/blob/master/Lab_1/Lab%201%20Notebook.ipynb\n",
+    "\n",
+    "\n",
+    "## Notes about our workstyle:\n",
+    "#### - Imports happen near where they are used.\n",
+    "#### - Markdown for general plan and comments on code choices.\n",
+    "#### - Keep master variables in memory for easy access."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Imports for data-preprocessing\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "from __future__ import print_function\n",
+    "\n",
+    "%matplotlib inline\n",
+    "\n",
+    "#for a clean notebook\n",
+    "import warnings\n",
+    "warnings.filterwarnings('ignore')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "##### Import data\n",
+    "df = pd.read_csv('../data/master.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style>\n",
+       "    .dataframe thead tr:only-child th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: left;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Unnamed: 0</th>\n",
+       "      <th>age</th>\n",
+       "      <th>workclass</th>\n",
+       "      <th>education</th>\n",
+       "      <th>education_num</th>\n",
+       "      <th>marital_status</th>\n",
+       "      <th>occupation</th>\n",
+       "      <th>relationship</th>\n",
+       "      <th>race</th>\n",
+       "      <th>sex</th>\n",
+       "      <th>capital_gain</th>\n",
+       "      <th>capital_loss</th>\n",
+       "      <th>hours_per_week</th>\n",
+       "      <th>native_country</th>\n",
+       "      <th>income_binary</th>\n",
+       "      <th>condensed_education</th>\n",
+       "      <th>continent</th>\n",
+       "      <th>condensed_marital</th>\n",
+       "      <th>condensed_workclass</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>0</td>\n",
+       "      <td>39</td>\n",
+       "      <td>State-gov</td>\n",
+       "      <td>Bachelors</td>\n",
+       "      <td>13</td>\n",
+       "      <td>Never-married</td>\n",
+       "      <td>Adm-clerical</td>\n",
+       "      <td>Not-in-family</td>\n",
+       "      <td>White</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>2174</td>\n",
+       "      <td>0</td>\n",
+       "      <td>40</td>\n",
+       "      <td>United-States</td>\n",
+       "      <td>&lt;=50K</td>\n",
+       "      <td>Bachelors</td>\n",
+       "      <td>United States</td>\n",
+       "      <td>Never</td>\n",
+       "      <td>Government</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Unnamed: 0  age  workclass   education  education_num marital_status  \\\n",
+       "0           0   39  State-gov   Bachelors             13  Never-married   \n",
+       "\n",
+       "      occupation    relationship    race    sex  capital_gain  capital_loss  \\\n",
+       "0   Adm-clerical   Not-in-family   White   Male          2174             0   \n",
+       "\n",
+       "   hours_per_week native_country income_binary condensed_education  \\\n",
+       "0              40  United-States         <=50K           Bachelors   \n",
+       "\n",
+       "       continent condensed_marital condensed_workclass  \n",
+       "0  United States             Never          Government  "
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df.head(1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Data Preparation\n",
+    "\n",
+    "### Variable Pre-processing\n",
+    "\n",
+    "We transformed the data set from what it initially was by condensing variables that had infrequent and distributed classes into more concise buckets. This included condensing education, country, marital status, and workclass. This process is verbose to show, so the code is included here:\n",
+    "\n",
+    "https://github.com/htpeter/pdti_DataMining/blob/master/data/Train_Test_Script.ipynb"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "When preparing our X variables for training, we used one-hot encoding via the Pandas' get_dummies function. We also used SciKit's StandardScaler function which scales the values to unit variance and sets the mean to zero.\n",
+    "\n",
+    "As shown in the code blocks below, we removed variables that are redundant with the condensed variables added in the notebook above. We also removed a column named \"Unnamed: 0\" which is an empty vector."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Income Binary Pre-Processing\n",
+    "\n",
+    "Our first classification task will be on *income_binary*, a binary class variable comprised of \"<=50K\" and \">50K\" classes."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 76,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Import for spliting the data set\n",
+    "from sklearn.model_selection import StratifiedShuffleSplit\n",
+    "from sklearn.preprocessing import StandardScaler\n",
+    "\n",
+    "# delete unwanted variables from x and setup to be used in classifier\n",
+    "y_income = df['income_binary']\n",
+    "\n",
+    "ib_drop = ['income_binary','workclass','education','education_num',\n",
+    "             'marital_status','occupation','native_country','Unnamed: 0']\n",
+    "x_income = df.drop(ib_drop,1)\n",
+    "x_income = pd.get_dummies(x_income).values\n",
+    "x_income = StandardScaler().fit_transform(x_income)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Age Groups Pre-Processing\n",
+    "\n",
+    "Our second classification task is to predict *age_group*, which is a categorical variable created from age. These categories include 17-34, 35-49, 50-64 and 65+."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 77,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "#bin ranges\n",
+    "bins = [17, 34, 49, 64, 90]\n",
+    "\n",
+    "#bin names\n",
+    "group_names = ['17-34', '35-49', '50-64', '65+']\n",
+    "\n",
+    "#pandas function to create the bins\n",
+    "age_groups = pd.cut(df.age, bins, labels=group_names)\n",
+    "\n",
+    "#make sure to call .tolist(), pd.cut() has very annoying hidden OOP \n",
+    "#types forced upon the data which will cause errors with sklearn\n",
+    "df['age_groups'] = age_groups.tolist()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 78,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# delete unwanted variables from x and setup to be used in classifier\n",
+    "y_ages = df['age_groups']\n",
+    "# pd.cut causes hidden NA types over valid data\n",
+    "y_ages = y_ages.fillna(\"\")\n",
+    "\n",
+    "ag_drop = ['age_groups','workclass','education','education_num',\n",
+    "             'marital_status','occupation','native_country','Unnamed: 0','age']\n",
+    "\n",
+    "x_ages = df.drop(ag_drop,1)\n",
+    "x_ages = pd.get_dummies(x_ages).values\n",
+    "x_ages = StandardScaler().fit_transform(x_ages)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "\n",
+    "# Evaluation Metric Selection\n",
+    "\n",
+    "Our team has used the SciKit classification_report function in most cases to return an array of evaluation metrics. This returns recall, precision and F1. We hypothesized that accuracy would be the most important for us. This is due to the nature of our prediction, which is guessing the age group and income level of an individual based on census data. The cost associated with incorrect prediction is low, so we can afford to build a model that focuses on accuracy. When we have a model that has the highest out of sample accuracy, it is theoretically leveraging hidden patterns within the data for the period trained.\n",
+    "\n",
+    "Our prediction algorthims, which attempt to predict the age group of an individual or whether an individual's income is greater or less than $50,000, are primarly applicable to macroeconomic policy. While the abstract models are often well-defined by economists, data collection is expensive. Even more so, piecing together missing chunks is best done by extending pre-existing knowledge to fill in the gaps. Prediction models like these have the primary goal of expanding a data set outwards so that it represents the reality. Accuracy is the most relevant here, with incorrect guesses being a relatively insignificant cost.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 51,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "         no       0.50      1.00      0.67         1\n",
+      "        yes       1.00      0.50      0.67         2\n",
+      "\n",
+      "avg / total       0.83      0.67      0.67         3\n",
+      "\n",
+      "Accuracy : \n",
+      "\n",
+      "0.666666666667\n"
+     ]
+    }
+   ],
+   "source": [
+    "#this is how we will be calculating throughout the notbook:\n",
+    "from sklearn.metrics import classification_report, accuracy_score\n",
+    "#much cleaner to call print so the \\n get rendered properly\n",
+    "print(classification_report(['yes','yes','no'],['yes','no','no']))\n",
+    "print('Accuracy : \\n')\n",
+    "print(accuracy_score(['yes','yes','no'],['yes','no','no']))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Training and Testing Split - StratifiedKFold + Standardization\n",
+    "\n",
+    "The goal of performing cross-validation is to split your data into a training set and test set. The training set is split up into multiple validation sets. We are going to use stratified K-fold cross-validation with 10 splits (K=10) for our classification tasks. This is because our data is unbalanced. There is a total of 48,842 individuals that were surveyed in our data set. Out of all the individuals surveyed, 41,762 are white, 32,650 are male, 37,155 have an income greater than or equal to 50K USD, 43,832 are from the United States, and 33,906 work in the private industry. Stratified K-fold cross-validation ensures that each of our training sets contains an equal proportion of each unbalanced variable. \n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "TRAIN: [15163 16279 29246 ..., 21159 41049 17832] TEST: [43578  1917 17027 ..., 22163 39121  5217]\n",
+      "TRAIN: [12894 40784 33210 ..., 40386 25846 36294] TEST: [22078 13800    49 ..., 31283 31586  5940]\n",
+      "TRAIN: [16738 39693 30388 ...,   328 33912 39362] TEST: [24310 48705 25069 ..., 47258 14625 39292]\n",
+      "TRAIN: [ 7391 39777 43398 ...,  8978 24399 34458] TEST: [ 8836  1328 27156 ..., 47164 10476 15648]\n",
+      "TRAIN: [16863 33361 41054 ..., 26744 47828 11941] TEST: [18495 35842 20752 ..., 46535  4696 46808]\n",
+      "TRAIN: [ 5743 21257 30549 ...,  5927  7506 19162] TEST: [21737 30911  7484 ..., 19717 27662 19780]\n",
+      "TRAIN: [18797 40559 21393 ..., 47376 19268 42562] TEST: [13861 34766  4320 ..., 42723 30153 11994]\n",
+      "TRAIN: [36977 11147 24500 ..., 40130 15262 22626] TEST: [13974 35810 43678 ...,  7735 14376 40480]\n",
+      "TRAIN: [32752 37107 19197 ..., 26015 32870  7076] TEST: [36370 13966 29812 ..., 20543 23045 34324]\n",
+      "TRAIN: [22441 41471 48039 ..., 32784  4446 45905] TEST: [  934  1627 37667 ...,  4950 44845 21169]\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.model_selection import StratifiedShuffleSplit\n",
+    "# Split the data into 20% Test and 80% Train\n",
+    "sss = StratifiedShuffleSplit(n_splits=10, test_size=0.20, random_state=111)\n",
+    "\n",
+    "# Create a for loop that grabs the values for each fold for traing and test sets\n",
+    "for train_index, test_index in sss.split(x_income, y_income):\n",
+    "    print(\"TRAIN:\", train_index, \"TEST:\", test_index)\n",
+    "    X_train, X_test = x_income[train_index], x_income[test_index]\n",
+    "    y_train, y_test = y_income[train_index], y_income[test_index]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 49,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "TRAIN: [ 8492   773 13118 ..., 35980 33511 35588] TEST: [19692 27047 14102 ...,  5491 27134 25133]\n",
+      "TRAIN: [35754 44603 33516 ...,  9966 39949 27930] TEST: [ 6576 30339 39221 ..., 26307 20282 14216]\n",
+      "TRAIN: [ 9692 36813  2848 ..., 16610 48026 24110] TEST: [17088 44904 33742 ..., 39410 34564 24713]\n",
+      "TRAIN: [18717 17405 28960 ..., 17899 20181 28803] TEST: [29770  5237 39991 ..., 19858 25079 39382]\n",
+      "TRAIN: [31784 43606 33743 ..., 43070 11410 40058] TEST: [ 5991  5420 37845 ..., 23131 38821 38455]\n",
+      "TRAIN: [10324 22662 46232 ..., 13002  5850 47428] TEST: [35217 41009 45992 ..., 19937 37685 43961]\n",
+      "TRAIN: [10245 34540 19934 ...,  4642 48455  1175] TEST: [46966 10993 27579 ..., 31110 48759 43327]\n",
+      "TRAIN: [39885  4332  3592 ..., 44157 11660 46607] TEST: [31259 23034  5609 ..., 20253 24091 12492]\n",
+      "TRAIN: [17705 32836 34332 ..., 30752 31903 12175] TEST: [24823 12082 42233 ..., 14850 38281 46484]\n",
+      "TRAIN: [ 9054 18693 13929 ...,  8118 28501 10876] TEST: [37717 40166 28516 ...,  4861 47589  9591]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create a for loop that grabs the values for each fold for traing and test sets\n",
+    "\n",
+    "for train_index, test_index in sss.split(x_ages, y_ages):\n",
+    "    print(\"TRAIN:\", train_index, \"TEST:\", test_index)\n",
+    "    X_train, X_test = x_ages[train_index], x_ages[test_index]\n",
+    "    y_train, y_test = y_ages[train_index], y_ages[test_index]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "21 workclass\n",
+      "10 workclass\n",
+      "83 education\n",
+      "37 marital_status\n",
+      "15 occupation\n",
+      "92 native_country\n",
+      "88 native_country\n",
+      "87 native_country\n",
+      "86 native_country\n",
+      "85 native_country\n",
+      "75 native_country\n",
+      "67 native_country\n",
+      "65 native_country\n",
+      "59 native_country\n",
+      "49 native_country\n",
+      "49 native_country\n",
+      "46 native_country\n",
+      "45 native_country\n",
+      "38 native_country\n",
+      "37 native_country\n",
+      "30 native_country\n",
+      "30 native_country\n",
+      "28 native_country\n",
+      "27 native_country\n",
+      "23 native_country\n",
+      "23 native_country\n",
+      "23 native_country\n",
+      "21 native_country\n",
+      "20 native_country\n",
+      "19 native_country\n",
+      "1 native_country\n"
+     ]
+    }
+   ],
+   "source": [
+    "#for support lets print the instances of classes that are low\n",
+    "for col in df.columns:\n",
+    "    if df[col].dtype == 'O':\n",
+    "        val = df[col].value_counts()\n",
+    "        for i in val:\n",
+    "            if i < 100:\n",
+    "                print(i, col)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Models & Results\n",
+    "\n",
+    "For both our sets, the training matrices are one-hot encoded and standardized. We will be predicting two classes in *Income Binary* and four classes in *Age Groups*.\n",
+    "\n",
+    "## Income Binary\n",
+    "\n",
+    "### Models\n",
+    "\n",
+    "1. KNN\n",
+    "2. Random Forest\n",
+    "3. Naive Bayes\n",
+    "\n",
+    "## Age Groups\n",
+    "\n",
+    "### Models\n",
+    "\n",
+    "1. Random Forest\n",
+    "2. Logistic Regression\n",
+    "3. Adaboost\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true
+   },
+   "source": [
+    "### KNN - Income Binary"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 81,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "KNN accuracy = 0.834988228068\n",
+      "KNN metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.87      0.93      0.90      7431\n",
+      "       >50K       0.70      0.54      0.61      2338\n",
+      "\n",
+      "avg / total       0.83      0.83      0.83      9769\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.neighbors import KNeighborsClassifier\n",
+    "# Classification with KNN on income_binary\n",
+    "\n",
+    "# Create reusable KNN object \n",
+    "KNN = KNeighborsClassifier(n_neighbors=25)\n",
+    "\n",
+    "iter_num=0\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  # train indices for X\n",
+    "    y_train = y_income[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_income[test_indices]    # test indices for X\n",
+    "    y_test = y_income[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable KNN classifier on the training data\n",
+    "    KNN.fit(X_train,y_train)  # train object\n",
+    "    y_hat = KNN.predict(X_test) # get test set predictions\n",
+    "    \n",
+    "    if iter_num%4 == 0:\n",
+    "        # Accuracy for the iterations of training/testing\n",
+    "        accuracy_KNN = accuracy_score(y_test,y_hat)  # obtain accuracies for each iteration \n",
+    "        print(\"----Iteration\",iter_num,\" ----\")         # print out each numbered interation \n",
+    "        print('KNN accuracy =', accuracy_KNN)            \n",
+    "\n",
+    "        #Metric report \n",
+    "        metrics_KNN = classification_report(y_test,y_hat)  # obtain metric's report for each iteration \n",
+    "        print('KNN metric report')\n",
+    "        print(metrics_KNN)\n",
+    "        iter_num+=1  # run through the first iteration, then second, then third ... then tenth"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 91,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "KNN accuracy = 0.834988228068\n",
+      "KNN metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.87      0.93      0.90      7431\n",
+      "       >50K       0.70      0.54      0.61      2338\n",
+      "\n",
+      "avg / total       0.83      0.83      0.83      9769\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.pipeline import Pipeline\n",
+    "from sklearn.decomposition import PCA \n",
+    "# Lets train a PipeLine with PCA to see if we can increase the accuracy \n",
+    "\n",
+    "# First we need to set up the PipeLine that will take the PCA and then fit a KNN classifier\n",
+    "KNN_pipe = Pipeline([('PCA',PCA(n_components=2,svd_solver='randomized')),\n",
+    "     ('KNN',KNeighborsClassifier(n_neighbors=25))])\n",
+    "\n",
+    "iter_num=0\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  # train indices for X\n",
+    "    y_train = y_income[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_income[test_indices]    # test indices for X\n",
+    "    y_test = y_income[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable KNN classifier on the training data\n",
+    "    KNN.fit(X_train,y_train)  # train object\n",
+    "    y_hat = KNN.predict(X_test) # get test set precitions\n",
+    "    \n",
+    "    if iter_num%4 == 0:\n",
+    "        # Accuracy for the iterations of training/testing\n",
+    "        accuracy_KNN = accuracy_score(y_test,y_hat)  # obtain accuracies for each iteration \n",
+    "        print(\"----Iteration\",iter_num,\" ----\")         # print out each numbered interation \n",
+    "        print('KNN accuracy =', accuracy_KNN)            \n",
+    "\n",
+    "        #Metric report \n",
+    "        metrics_KNN = classification_report(y_test,y_hat)  # obtain metric's report for each iteration \n",
+    "        print('KNN metric report')\n",
+    "        print(metrics_KNN)\n",
+    "        iter_num+=1  # run through the first iteration, then second, then third ... then tenth"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Accuracies for comparision for each KNN model \n",
+    "\n",
+    "# KNN model 1\n",
+    "print(\"1. The mean accuracy for KNN model is \", mean_KNN)\n",
+    "print('------------------------------------------------------------------------')\n",
+    "\n",
+    "# RF model 2\n",
+    "print(\"2. The mean accuracy for KNN with PCA model is \", mean_KNN_pipe)\n",
+    "print('------------------------------------------------------------------------')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The mean accuracy for the K-Nearest Neighbor model without the PCA is 83.55%. This is the model we are going to choose for this classifier. Next, we will run a Random Forest classifier and then compare the two classifiers together to see which one generates the highest accuracy for our data."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Random Forest - Income Binary\n",
+    "\n",
+    "The random forest performs incredibly well here."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 82,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.92      0.88      0.90      7750\n",
+      "       >50K       0.60      0.69      0.64      2019\n",
+      "\n",
+      "avg / total       0.85      0.84      0.84      9769\n",
+      "\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.92      0.88      0.90      7757\n",
+      "       >50K       0.59      0.69      0.64      2012\n",
+      "\n",
+      "avg / total       0.85      0.84      0.84      9769\n",
+      "\n",
+      "Mean Accuracy :  0.839113522367\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Random Forest of Income\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "\n",
+    "# criterion : 'gini' > 'entropy'\n",
+    "# max_features : 0 -> 41 (default is fine)\n",
+    "# bootstrap : keep True\n",
+    "# max_depth : not material\n",
+    "\n",
+    "RFC = RandomForestClassifier(random_state=111)\n",
+    "\n",
+    "iteration = 1\n",
+    "scores = []\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  # train indices for X          \n",
+    "    y_train = y_income[train_indices]  # train indices for y         \n",
+    "    \n",
+    "    X_test = x_income[test_indices]    # test indices for X\n",
+    "    y_test = y_income[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable KNN classifier on the training data\n",
+    "    RFC.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RFC.predict(X_test) # get test set precitions\n",
+    "    \n",
+    "    scores.append(accuracy_score(y_hat,y_test))\n",
+    "    #lets print the 4th and the 8th iter to keep things viewable\n",
+    "    if len(scores)%4 == 0:\n",
+    "        print(classification_report(y_hat,y_test))\n",
+    "    \n",
+    "\n",
+    "print(\"Mean Accuracy : \", np.mean(scores))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 83,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.93      0.88      0.90      7861\n",
+      "       >50K       0.60      0.73      0.66      1908\n",
+      "\n",
+      "avg / total       0.87      0.85      0.86      9769\n",
+      "\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.94      0.88      0.91      7925\n",
+      "       >50K       0.59      0.75      0.66      1844\n",
+      "\n",
+      "avg / total       0.87      0.85      0.86      9769\n",
+      "\n",
+      "Mean Accuracy :  0.85467294503\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Random Forest of Income\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "\n",
+    "# criterion : 'gini' > 'entropy'\n",
+    "# max_features : 0 -> 41 (default is fine)\n",
+    "# bootstrap : keep True\n",
+    "# max_depth : not material\n",
+    "\n",
+    "RFC = RandomForestClassifier(max_depth=20,random_state=111)\n",
+    "\n",
+    "iteration = 1\n",
+    "scores = []\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  # train indices for X          \n",
+    "    y_train = y_income[train_indices]  # train indices for y         \n",
+    "    \n",
+    "    X_test = x_income[test_indices]    # test indices for X\n",
+    "    y_test = y_income[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable KNN classifier on the training data\n",
+    "    RFC.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RFC.predict(X_test) # get test set precitions\n",
+    "    \n",
+    "    scores.append(accuracy_score(y_hat,y_test))\n",
+    "    #lets print the 4th and the 8th iter to keep things viewable\n",
+    "    if len(scores)%4 == 0:\n",
+    "        print(classification_report(y_hat,y_test))\n",
+    "    \n",
+    "\n",
+    "print(\"Mean Accuracy : \", np.mean(scores))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 95,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "The mean accuracy for RF max_depth = 10 is 0.854744600266\n",
+      "------------------------------------------------------------------------\n",
+      "The mean accuracy for RF max_depth = 15 is 0.85768246494\n",
+      "------------------------------------------------------------------------\n",
+      "The mean accuracy for RF max_depth = 25 is 0.846023134405\n",
+      "------------------------------------------------------------------------\n",
+      "The mean accuracy for RF max_depth = 50 is 0.839205650527\n",
+      "------------------------------------------------------------------------\n",
+      "The mean accuracy for RF max_depth = 100 is 0.839113522367\n",
+      "------------------------------------------------------------------------\n",
+      "The mean accuracy for RF max_depth = 150 is 0.839113522367\n",
+      "------------------------------------------------------------------------\n",
+      "The mean accuracy for RF max_depth = 200 is 0.839113522367\n",
+      "------------------------------------------------------------------------\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create an object that holds the third RF model with parameter adjustments\n",
+    "\n",
+    "iteration = 1\n",
+    "for max_depth_n in [10,15,25,50,100,150,200]:\n",
+    "    RFC = RandomForestClassifier(max_depth=max_depth_n, random_state=111)\n",
+    "    scores = []\n",
+    "    for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "        X_train = x_income[train_indices]  # train indices for X          \n",
+    "        y_train = y_income[train_indices]  # train indices for y         \n",
+    "\n",
+    "        X_test = x_income[test_indices]    # test indices for X\n",
+    "        y_test = y_income[test_indices]    # test indices for y\n",
+    "\n",
+    "        # train the reusable KNN classifier on the training data\n",
+    "        RFC.fit(X_train,y_train)  # train object\n",
+    "        y_hat = RFC.predict(X_test) # get test set precitions\n",
+    "\n",
+    "        scores.append(accuracy_score(y_hat,y_test))\n",
+    "\n",
+    "    iteration += 1  \n",
+    "            \n",
+    "            # Accuracies for comparision for each RF model \n",
+    "    \n",
+    "    # RF model 1\n",
+    "    print(\"The mean accuracy for RF max_depth = %s is %s\" % (str(max_depth_n), np.mean(scores)))\n",
+    "    print('------------------------------------------------------------------------')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 100,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "RF2 accuracy = 0.854642235643\n",
+      "RF2 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.86      0.96      0.91      7431\n",
+      "       >50K       0.80      0.52      0.63      2338\n",
+      "\n",
+      "avg / total       0.85      0.85      0.84      9769\n",
+      "\n",
+      "----Iteration 4  ----\n",
+      "RF2 accuracy = 0.855051694135\n",
+      "RF2 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.87      0.96      0.91      7431\n",
+      "       >50K       0.80      0.53      0.64      2338\n",
+      "\n",
+      "avg / total       0.85      0.86      0.84      9769\n",
+      "\n",
+      "----Iteration 8  ----\n",
+      "RF2 accuracy = 0.854539871021\n",
+      "RF2 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.87      0.96      0.91      7431\n",
+      "       >50K       0.79      0.53      0.64      2338\n",
+      "\n",
+      "avg / total       0.85      0.85      0.84      9769\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create an object that holds the second RF model with parameter adjustments\n",
+    "\n",
+    "RF2= RandomForestClassifier(max_depth=10, random_state=111)\n",
+    "\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the RF above\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the KNN above\n",
+    "iter_num=0\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  # train indices for X\n",
+    "    y_train = y_income[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_income[test_indices]    # test indices for X\n",
+    "    y_test = y_income[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable KNN classifier on the training data\n",
+    "    RF2.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RF2.predict(X_test) # get test set precitions\n",
+    "    \n",
+    "    if (iter_num % 4) == 0:\n",
+    "        # Accuracy for the iterations of training/testing\n",
+    "        accuracy_RF2 = accuracy_score(y_test,y_hat)   # obtain accuracies for each iteration \n",
+    "        print(\"----Iteration\",iter_num,\" ----\")          # print out each numbered interation \n",
+    "        print('RF2 accuracy =', accuracy_RF2)\n",
+    "\n",
+    "        # Metric report \n",
+    "        metrics_RF2 = classification_report(y_test,y_hat)\n",
+    "        print('RF2 metric report')\n",
+    "        print(metrics_RF2)\n",
+    "    iter_num+=1"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now we will start changing the other hyperparameters."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 101,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "RF7 accuracy = 0.856075340362\n",
+      "RF7 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.86      0.96      0.91      7431\n",
+      "       >50K       0.81      0.52      0.63      2338\n",
+      "\n",
+      "avg / total       0.85      0.86      0.84      9769\n",
+      "\n",
+      "----Iteration 4  ----\n",
+      "RF7 accuracy = 0.859453372914\n",
+      "RF7 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.87      0.96      0.91      7431\n",
+      "       >50K       0.81      0.53      0.65      2338\n",
+      "\n",
+      "avg / total       0.86      0.86      0.85      9769\n",
+      "\n",
+      "----Iteration 8  ----\n",
+      "RF7 accuracy = 0.860169925274\n",
+      "RF7 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.87      0.96      0.91      7431\n",
+      "       >50K       0.82      0.53      0.65      2338\n",
+      "\n",
+      "avg / total       0.86      0.86      0.85      9769\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create an object that holds the third RF model with parameter adjustments\n",
+    "# The warm_start parameter reuses the solution of the previous model called and adds more estimators\n",
+    "\n",
+    "RF7 = RandomForestClassifier(max_depth=10, random_state=111, n_estimators=150, warm_start=True)\n",
+    "\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the RF2 above\n",
+    "iter_num=0\n",
+    "# The indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  #train indices for X\n",
+    "    y_train = y_income[train_indices]  #train indices for y\n",
+    "    \n",
+    "    X_test = x_income[test_indices]    #test indices for X\n",
+    "    y_test = y_income[test_indices]    #test indices for y\n",
+    "    \n",
+    "    # Train the reusable KNN classifier on the training data\n",
+    "    RF7.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RF7.predict(X_test) #get the test set predictions \n",
+    "    \n",
+    "    if (iter_num % 4) == 0:\n",
+    "        # Accuracy for the iterations of training/testing\n",
+    "        accuracy_RF7= accuracy_score(y_test,y_hat)\n",
+    "        print(\"----Iteration\",iter_num,\" ----\")          # print out each numbered interation \n",
+    "        print('RF7 accuracy =', accuracy_RF7)\n",
+    "\n",
+    "        # Metric report \n",
+    "        metrics_RF7 = classification_report(y_test,y_hat)\n",
+    "        print('RF7 metric report')\n",
+    "        print(metrics_RF7)\n",
+    "    iter_num+=1"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The Random Forest model with the highest predicted accuracy is model 7. Random Forest model 7 has a max tree depth of 10 and 150 estimators, which represent the trees in the forest. We have also included the *warm_start* hyperparameter to this model. This hyperparameter reuses the solution of the previous model called, which was RF model 2, and adds more estimators. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 106,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',\n",
+      "            max_depth=10, max_features='auto', max_leaf_nodes=None,\n",
+      "            min_impurity_decrease=0.0, min_impurity_split=None,\n",
+      "            min_samples_leaf=1, min_samples_split=2,\n",
+      "            min_weight_fraction_leaf=0.0, n_estimators=150, n_jobs=1,\n",
+      "            oob_score=False, random_state=111, verbose=0, warm_start=True)\n"
+     ]
+    },
+    {
+     "data": {
+      "image/png": "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\nxKQvSQ35f7Lei67gpjBfAAAAAElFTkSuQmCC\n",
+      "text/plain": [
+       "<matplotlib.figure.Figure at 0x1176eb3c8>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/plain": [
+       "capital_gain                                       0.191145\n",
+       "condensed_marital_Married                          0.154175\n",
+       "relationship_ Husband                              0.098429\n",
+       "condensed_marital_Never                            0.058171\n",
+       "age                                                0.054350\n",
+       "condensed_education_Masters/Professional School    0.052422\n",
+       "hours_per_week                                     0.047491\n",
+       "capital_loss                                       0.045432\n",
+       "condensed_education_No High School Diploma         0.042165\n",
+       "condensed_education_Bachelors                      0.040767\n",
+       "Name: 0, dtype: float64"
+      ]
+     },
+     "execution_count": 106,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "print (RF7)\n",
+    "\n",
+    "plt.barh(range(len(RF7.feature_importances_)), RF7.feature_importances_)\n",
+    "plt.show()\n",
+    "\n",
+    "income_ranforest_featureval = pd.DataFrame(RF7.feature_importances_,index=pd.get_dummies(df.drop(ib_drop,1)).columns)\n",
+    "\n",
+    "#top 10 feature importances\n",
+    "income_ranforest_featureval[0].sort_values(ascending=False)[:10]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The above bar chart shows feature importance related to the RF7 model. The most important features are capital_gain and codensed_marital_Married."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Naive Bayes - Income Binary"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 111,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "GNB accuracy = 0.768041764766\n",
+      "GNB metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.95      0.74      0.83      7431\n",
+      "       >50K       0.51      0.86      0.64      2338\n",
+      "\n",
+      "avg / total       0.84      0.77      0.78      9769\n",
+      "\n",
+      "----Iteration 4  ----\n",
+      "GNB accuracy = 0.770600880336\n",
+      "GNB metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.95      0.74      0.83      7431\n",
+      "       >50K       0.51      0.87      0.65      2338\n",
+      "\n",
+      "avg / total       0.84      0.77      0.79      9769\n",
+      "\n",
+      "----Iteration 8  ----\n",
+      "GNB accuracy = 0.761080970417\n",
+      "GNB metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.95      0.73      0.82      7431\n",
+      "       >50K       0.50      0.87      0.64      2338\n",
+      "\n",
+      "avg / total       0.84      0.76      0.78      9769\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.naive_bayes import GaussianNB, BernoulliNB\n",
+    "# Create an object that holds the NB\n",
+    "\n",
+    "GNB = GaussianNB()\n",
+    "\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the RF2 above\n",
+    "iter_num = 0\n",
+    "# The indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  #train indices for X\n",
+    "    y_train = y_income[train_indices]  #train indices for y\n",
+    "    \n",
+    "    X_test = x_income[test_indices]    #test indices for X\n",
+    "    y_test = y_income[test_indices]    #test indices for y\n",
+    "    \n",
+    "    # Train the reusable KNN classifier on the training data\n",
+    "    GNB.fit(X_train,y_train)  # train object\n",
+    "    y_hat = GNB.predict(X_test) #get the test set predictions \n",
+    "    \n",
+    "    # Accuracy for the iterations of training/testing\n",
+    "    if (iter_num % 4) == 0:\n",
+    "        accuracy_GNB = accuracy_score(y_test,y_hat)\n",
+    "        print(\"----Iteration\",iter_num,\" ----\")          # print out each numbered interation \n",
+    "        print('GNB accuracy =', accuracy_GNB)\n",
+    "\n",
+    "        # Metric report \n",
+    "        metrics_GNB = classification_report(y_test,y_hat)\n",
+    "        print('GNB metric report')\n",
+    "        print(metrics_GNB)\n",
+    "        \n",
+    "    iter_num+=1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 112,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 4  ----\n",
+      "GNB accuracy = 0.762514075136\n",
+      "GNB metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.92      0.75      0.83      7431\n",
+      "       >50K       0.50      0.79      0.61      2338\n",
+      "\n",
+      "avg / total       0.82      0.76      0.78      9769\n",
+      "\n",
+      "----Iteration 8  ----\n",
+      "GNB accuracy = 0.762411710513\n",
+      "GNB metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "      <=50K       0.92      0.76      0.83      7431\n",
+      "       >50K       0.50      0.78      0.61      2338\n",
+      "\n",
+      "avg / total       0.82      0.76      0.78      9769\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.naive_bayes import GaussianNB, BernoulliNB\n",
+    "# Create an object that holds the NB\n",
+    "\n",
+    "GNB = BernoulliNB()\n",
+    "\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the RF2 above\n",
+    "iter_num=1\n",
+    "# The indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_income,y_income): \n",
+    "    X_train = x_income[train_indices]  #train indices for X\n",
+    "    y_train = y_income[train_indices]  #train indices for y\n",
+    "    \n",
+    "    X_test = x_income[test_indices]    #test indices for X\n",
+    "    y_test = y_income[test_indices]    #test indices for y\n",
+    "    \n",
+    "    # Train the reusable KNN classifier on the training data\n",
+    "    GNB.fit(X_train,y_train)  # train object\n",
+    "    y_hat = GNB.predict(X_test) #get the test set predictions \n",
+    "    \n",
+    "    # Accuracy for the iterations of training/testing\n",
+    "    if (iter_num % 4) == 0:\n",
+    "        accuracy_GNB = accuracy_score(y_test,y_hat)\n",
+    "        print(\"----Iteration\",iter_num,\" ----\")          # print out each numbered interation \n",
+    "        print('GNB accuracy =', accuracy_GNB)\n",
+    "\n",
+    "        # Metric report \n",
+    "        metrics_GNB = classification_report(y_test,y_hat)\n",
+    "        print('GNB metric report')\n",
+    "        print(metrics_GNB)\n",
+    "        \n",
+    "    iter_num+=1"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 178,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',\n",
+       "            max_depth=20, max_features='auto', max_leaf_nodes=None,\n",
+       "            min_impurity_decrease=0.0, min_impurity_split=None,\n",
+       "            min_samples_leaf=1, min_samples_split=2,\n",
+       "            min_weight_fraction_leaf=0.0, n_estimators=225, n_jobs=1,\n",
+       "            oob_score=False, random_state=111, verbose=0, warm_start=True)"
+      ]
+     },
+     "execution_count": 178,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "RF9"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 114,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Models for Age Groups\n",
+    "\n",
+    "### Logistic Regression - Age Groups\n",
+    "Below we explored the usefulness of pairing feature selection with logistic regression when predicting age groups. We found that allowing logistic regression to access all features provided the highest accuracy. See below:\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 117,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "====Iteration 0  ====\n",
+      "accuracy 0.574777356945\n",
+      "confusion matrix\n",
+      " [[   0  117    0    2    0]\n",
+      " [   0 2809 1191   75    8]\n",
+      " [   0  787 2485  144   16]\n",
+      " [   0  238 1214  209   57]\n",
+      " [   0   57  170   78  112]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.57713174327\n",
+      "confusion matrix\n",
+      " [[   0  119    0    0    0]\n",
+      " [   2 2697 1284   91    9]\n",
+      " [   0  624 2615  168   25]\n",
+      " [   0  221 1249  204   44]\n",
+      " [   0   50  167   78  122]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.57273006449\n",
+      "confusion matrix\n",
+      " [[   0  118    1    0    0]\n",
+      " [   0 2603 1377   95    8]\n",
+      " [   0  617 2682  121   12]\n",
+      " [   0  162 1315  204   37]\n",
+      " [   0   35  197   79  106]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.57088750128\n",
+      "confusion matrix\n",
+      " [[   0  119    0    0    0]\n",
+      " [   0 2690 1296   88    9]\n",
+      " [   0  691 2546  165   30]\n",
+      " [   0  203 1250  219   46]\n",
+      " [   0   50  159   86  122]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.575289180059\n",
+      "confusion matrix\n",
+      " [[   0  119    0    0    0]\n",
+      " [   0 2802 1188   88    5]\n",
+      " [   0  773 2460  175   24]\n",
+      " [   0  225 1210  224   59]\n",
+      " [   0   47  157   79  134]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.564745623912\n",
+      "confusion matrix\n",
+      " [[   0  116    1    2    0]\n",
+      " [   0 2505 1481   84   13]\n",
+      " [   0  589 2677  150   16]\n",
+      " [   0  121 1319  219   59]\n",
+      " [   0   34  201   66  116]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.568533114955\n",
+      "confusion matrix\n",
+      " [[   0  118    0    1    0]\n",
+      " [   0 2668 1324   82    9]\n",
+      " [   0  720 2546  147   19]\n",
+      " [   0  171 1272  216   59]\n",
+      " [   0   43  176   74  124]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.569044938069\n",
+      "confusion matrix\n",
+      " [[   0  119    0    0    0]\n",
+      " [   0 2655 1333   87    8]\n",
+      " [   0  703 2567  144   18]\n",
+      " [   0  202 1251  209   56]\n",
+      " [   0   51  157   81  128]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.570273313543\n",
+      "confusion matrix\n",
+      " [[   0  118    1    0    0]\n",
+      " [   0 2615 1402   62    4]\n",
+      " [   0  650 2609  152   21]\n",
+      " [   0  135 1301  235   47]\n",
+      " [   0   35  203   67  112]]\n",
+      "====Iteration 0  ====\n",
+      "accuracy 0.571501689016\n",
+      "confusion matrix\n",
+      " [[   0  117    0    2    0]\n",
+      " [   0 2794 1205   75    9]\n",
+      " [   0  788 2477  147   20]\n",
+      " [   0  230 1231  202   55]\n",
+      " [   0   59  180   68  110]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.linear_model import LogisticRegression\n",
+    "from sklearn.metrics import confusion_matrix\n",
+    "from sklearn.feature_selection import RFE\n",
+    "\n",
+    "model = LogisticRegression(penalty='l2', C=1.0)\n",
+    "rfe = RFE(model, 10)\n",
+    "\n",
+    "iter_num=0\n",
+    "acc_scores = []\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  # train indices for X\n",
+    "    y_train = y_ages[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    # test indices for X\n",
+    "    y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable logisitc regression model on the training data\n",
+    "    rfe.fit(X_train,y_train)  # train object\n",
+    "    y_hat_rfe = rfe.predict(X_test) # get test set precitions\n",
+    "    acc_scores.append(accuracy_score(y_test,y_hat_rfe))\n",
+    "    # accuracy and confusion matrix for this iterations of training/testing\n",
+    "    if (iter_num % 4) == 0:\n",
+    "        acc_rfe1 = accuracy_score(y_test,y_hat_rfe)\n",
+    "        conf_rfe1 = confusion_matrix(y_test,y_hat_rfe)\n",
+    "        print(\"====Iteration\",iter_num,\" ====\")\n",
+    "        print(\"accuracy\", acc_rfe1 )\n",
+    "        print(\"confusion matrix\\n\",conf_rfe1)\n",
+    "    if iter_num == 5:\n",
+    "        break\n",
+    "    iter_num+=1\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 118,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "The mean accuracy for this model is  0.571491452554\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Print out the mean \n",
+    "mean_rfe = np.mean(acc_scores)\n",
+    "print(\"The mean accuracy for this model is \", mean_rfe)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 119,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "====Iteration 0  ====\n",
+      "accuracy 0.580305046576\n",
+      "confusion matrix\n",
+      " [[   4  113    0    1    1]\n",
+      " [   4 2841 1155   77    6]\n",
+      " [   1  774 2482  157   18]\n",
+      " [   0  238 1191  223   66]\n",
+      " [   0   76  145   77  119]]\n",
+      "====Iteration 4  ====\n",
+      "accuracy 0.583785443751\n",
+      "confusion matrix\n",
+      " [[   3  116    0    0    0]\n",
+      " [   3 2862 1133   76    9]\n",
+      " [   0  801 2447  158   26]\n",
+      " [   0  248 1160  247   63]\n",
+      " [   0   61  124   88  144]]\n",
+      "====Iteration 8  ====\n",
+      "accuracy 0.581226328181\n",
+      "confusion matrix\n",
+      " [[   8  111    0    0    0]\n",
+      " [   6 2846 1189   38    4]\n",
+      " [   1  796 2511  100   24]\n",
+      " [   0  237 1237  185   59]\n",
+      " [   0   66  149   74  128]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "#this model trains on all features\n",
+    "lr_clf = LogisticRegression(penalty='l2', C=1.0) # get object\n",
+    "\n",
+    "iter_num=0\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  # train indices for X\n",
+    "    y_train = y_ages[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    # test indices for X\n",
+    "    y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable logisitc regression model on the training data\n",
+    "    lr_clf.fit(X_train,y_train)  # train object\n",
+    "    y_hat = lr_clf.predict(X_test) # get test set precitions\n",
+    "\n",
+    "    # accuracy and confusion matrix for this iterations of training/testing\n",
+    "    if (iter_num % 4) == 0:\n",
+    "        acc = accuracy_score(y_test,y_hat)\n",
+    "        conf = confusion_matrix(y_test,y_hat)\n",
+    "        print(\"====Iteration\",iter_num,\" ====\")\n",
+    "        print(\"accuracy\", acc )\n",
+    "        print(\"confusion matrix\\n\",conf)\n",
+    "    iter_num+=1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 130,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0.58177227283599997"
+      ]
+     },
+     "execution_count": 130,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "np.mean([0.581226328181,0.583785443751,0.580305046576])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 120,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "model2 = LogisticRegression(penalty='l2', C=0.5)\n",
+    "rfe2 = RFE(model2, 10)\n",
+    "fit2 = rfe.fit(x_ages, y_ages)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 125,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "====Iteration 4  ====\n",
+      "accuracy 0.578462483366\n",
+      "confusion matrix\n",
+      " [[   0  119    0    0    0]\n",
+      " [   0 2765 1229   84    5]\n",
+      " [   0  697 2539  172   24]\n",
+      " [   0  204 1243  214   57]\n",
+      " [   0   54  156   74  133]]\n",
+      "====Iteration 8  ====\n",
+      "accuracy 0.575596273928\n",
+      "confusion matrix\n",
+      " [[   0  119    0    0    0]\n",
+      " [   0 2737 1275   64    7]\n",
+      " [   0  732 2538  140   22]\n",
+      " [   0  187 1252  229   50]\n",
+      " [   0   67  169   62  119]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "iter_num=0\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  # train indices for X\n",
+    "    y_train = y_ages[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    # test indices for X\n",
+    "    y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable logisitc regression model on the training data\n",
+    "    rfe2.fit(X_train,y_train)  # train object\n",
+    "    y_hat_rfe2 = rfe2.predict(X_test) # get test set precitions\n",
+    "\n",
+    "    # accuracy and confusion matrix for this iterations of training/testing\n",
+    "    if iter_num == 4 or iter_num == 8:\n",
+    "        acc_rfe2 = accuracy_score(y_test,y_hat_rfe2)\n",
+    "        conf_rfe2 = confusion_matrix(y_test,y_hat_rfe2)\n",
+    "        print(\"====Iteration\",iter_num,\" ====\")\n",
+    "        print(\"accuracy\", acc_rfe2 )\n",
+    "        print(\"confusion matrix\\n\",conf_rfe2)\n",
+    "    iter_num+=1\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 127,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "model3 = LogisticRegression(penalty='l2', C=1.0)\n",
+    "rfe3 = RFE(model3, 20)\n",
+    "fit3 = rfe.fit(x_ages, y_ages)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 128,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "====Iteration 0  ====\n",
+      "accuracy 0.578769577234\n",
+      "confusion matrix\n",
+      " [[   2  115    1    1    0]\n",
+      " [   3 2839 1206   29    6]\n",
+      " [   0  776 2526  114   16]\n",
+      " [   0  229 1251  174   64]\n",
+      " [   0   74  151   79  113]]\n",
+      "====Iteration 1  ====\n",
+      "accuracy 0.581533422049\n",
+      "confusion matrix\n",
+      " [[   3  116    0    0    0]\n",
+      " [   6 2823 1176   70    8]\n",
+      " [   0  747 2508  153   24]\n",
+      " [   0  243 1198  217   60]\n",
+      " [   0   61  146   80  130]]\n",
+      "====Iteration 2  ====\n",
+      "accuracy 0.578769577234\n",
+      "confusion matrix\n",
+      " [[   5  114    0    0    0]\n",
+      " [   8 2807 1217   42    9]\n",
+      " [   0  800 2553   69   10]\n",
+      " [   0  274 1226  158   60]\n",
+      " [   0   66  145   75  131]]\n",
+      "====Iteration 3  ====\n",
+      "accuracy 0.572218241376\n",
+      "confusion matrix\n",
+      " [[   2  117    0    0    0]\n",
+      " [   1 2794 1211   69    8]\n",
+      " [   0  784 2481  148   19]\n",
+      " [   0  239 1217  196   66]\n",
+      " [   0   62  135  103  117]]\n",
+      "====Iteration 4  ====\n",
+      "accuracy 0.583375985259\n",
+      "confusion matrix\n",
+      " [[   4  115    0    0    0]\n",
+      " [   1 2855 1147   72    8]\n",
+      " [   0  790 2472  147   23]\n",
+      " [   0  248 1177  224   69]\n",
+      " [   0   60  130   83  144]]\n",
+      "====Iteration 5  ====\n",
+      "accuracy 0.574879721568\n",
+      "confusion matrix\n",
+      " [[   1  116    1    1    0]\n",
+      " [   0 2752 1282   42    7]\n",
+      " [   0  777 2558   77   20]\n",
+      " [   0  229 1244  173   72]\n",
+      " [   0   64  161   60  132]]\n",
+      "====Iteration 6  ====\n",
+      "accuracy 0.569863855052\n",
+      "confusion matrix\n",
+      " [[   3  115    1    0    0]\n",
+      " [   3 2763 1279   26   12]\n",
+      " [   0  813 2502  100   17]\n",
+      " [   0  241 1232  168   77]\n",
+      " [   0   67  138   81  131]]\n",
+      "====Iteration 7  ====\n",
+      "accuracy 0.572115876753\n",
+      "confusion matrix\n",
+      " [[   7  112    0    0    0]\n",
+      " [   3 2745 1283   45    7]\n",
+      " [   0  801 2521   88   22]\n",
+      " [   0  248 1226  173   71]\n",
+      " [   0   58  136   80  143]]\n",
+      "====Iteration 8  ====\n",
+      "accuracy 0.579793223462\n",
+      "confusion matrix\n",
+      " [[   5  114    0    0    0]\n",
+      " [   2 2830 1196   52    3]\n",
+      " [   0  806 2480  122   24]\n",
+      " [   0  233 1209  218   58]\n",
+      " [   0   60  152   74  131]]\n",
+      "====Iteration 9  ====\n",
+      "accuracy 0.576619920156\n",
+      "confusion matrix\n",
+      " [[   3  114    0    2    0]\n",
+      " [   1 2811 1181   84    6]\n",
+      " [   0  783 2471  158   20]\n",
+      " [   0  233 1188  232   65]\n",
+      " [   0   72  152   77  116]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "iter_num=0\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  # train indices for X\n",
+    "    y_train = y_ages[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    # test indices for X\n",
+    "    y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable logisitc regression model on the training data\n",
+    "    rfe3.fit(X_train,y_train)  # train object\n",
+    "    y_hat_rfe3 = rfe3.predict(X_test) # get test set precitions\n",
+    "\n",
+    "    # accuracy and confusion matrix for this iterations of training/testing\n",
+    "    acc_rfe3 = accuracy_score(y_test,y_hat_rfe3)\n",
+    "    conf_rfe3 = confusion_matrix(y_test,y_hat_rfe3)\n",
+    "    print(\"====Iteration\",iter_num,\" ====\")\n",
+    "    print(\"accuracy\", acc_rfe3 )\n",
+    "    print(\"confusion matrix\\n\",conf_rfe3)\n",
+    "    iter_num+=1\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Our highest logistic regression model scored 58.1% accuracy, which is substantially lower than that of our income_binary models. This is partially due to the fact that we are attempting to distinguish between four categories instead of two. Our highest logistic regression model used all features in our data set as predictors. However, we noticed substantial improvements with random forest."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Random Forest - Age Groups"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 136,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.545296345583\n",
+      "0.542634865391\n",
+      "Mean Accuracy : 0.547190091105\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "\n",
+    "# criterion : 'gini' > 'entropy'\n",
+    "# max_features : 0 -> 42 (default is fine)\n",
+    "# bootstrap : keep True\n",
+    "# max_depth : not material\n",
+    "\n",
+    "RFC = RandomForestClassifier()\n",
+    "\n",
+    "iteration = 1\n",
+    "scores = []\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  # train indices for X\n",
+    "    y_train = y_ages[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    # test indices for X\n",
+    "    y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable RFC classifier on the training data\n",
+    "    RFC.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RFC.predict(X_test) # get test set precitions\n",
+    "    scores.append(accuracy_score(y_hat,y_test))\n",
+    "    if (iteration%4)==0:\n",
+    "        print(accuracy_score(y_hat,y_test))\n",
+    "    iteration += 1\n",
+    "                  \n",
+    "print('Mean Accuracy : %s' % str(np.mean(scores)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 137,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "RF2 accuracy = 0.586958747057\n",
+      "RF2 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.64      0.39      0.49       119\n",
+      "      17-34       0.76      0.65      0.70      4083\n",
+      "      35-49       0.49      0.79      0.60      3432\n",
+      "      50-64       0.48      0.11      0.18      1718\n",
+      "        65+       0.57      0.26      0.36       417\n",
+      "\n",
+      "avg / total       0.60      0.59      0.56      9769\n",
+      "\n",
+      "----Iteration 4  ----\n",
+      "RF2 accuracy = 0.587777664039\n",
+      "RF2 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.82      0.30      0.44       119\n",
+      "      17-34       0.74      0.67      0.70      4083\n",
+      "      35-49       0.49      0.77      0.60      3432\n",
+      "      50-64       0.45      0.12      0.19      1718\n",
+      "        65+       0.56      0.34      0.42       417\n",
+      "\n",
+      "avg / total       0.60      0.59      0.56      9769\n",
+      "\n",
+      "----Iteration 8  ----\n",
+      "RF2 accuracy = 0.582045245163\n",
+      "RF2 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  1.00      0.01      0.02       119\n",
+      "      17-34       0.73      0.66      0.70      4083\n",
+      "      35-49       0.49      0.78      0.60      3432\n",
+      "      50-64       0.48      0.11      0.17      1718\n",
+      "        65+       0.61      0.29      0.40       417\n",
+      "\n",
+      "avg / total       0.60      0.58      0.55      9769\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create an object that holds the second RF model with parameter adjustments\n",
+    "\n",
+    "RF2= RandomForestClassifier(max_depth=10, random_state=111)\n",
+    "\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the RF above\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the KNN above\n",
+    "iter_num=0\n",
+    "# the indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  # train indices for X\n",
+    "    y_train = y_ages[train_indices]  # train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    # test indices for X\n",
+    "    y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable KNN classifier on the training data\n",
+    "    RF2.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RF2.predict(X_test) # get test set precitions\n",
+    "    \n",
+    "    if (iter_num % 4) == 0:\n",
+    "        # Accuracy for the iterations of training/testing\n",
+    "        accuracy_RF2 = accuracy_score(y_test,y_hat)   # obtain accuracies for each iteration \n",
+    "        print(\"----Iteration\",iter_num,\" ----\")          # print out each numbered interation \n",
+    "        print('RF2 accuracy =', accuracy_RF2)\n",
+    "\n",
+    "        # Metric report \n",
+    "        metrics_RF2 = classification_report(y_test,y_hat)\n",
+    "        print('RF2 metric report')\n",
+    "        print(metrics_RF2)\n",
+    "    iter_num+=1"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Below we use the same hyperparameters as we did in the highest accuracy model for income_binary."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 139,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "RF7 accuracy = 0.585628006961\n",
+      "RF7 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.67      0.02      0.03       119\n",
+      "      17-34       0.74      0.66      0.70      4083\n",
+      "      35-49       0.49      0.79      0.60      3432\n",
+      "      50-64       0.47      0.11      0.18      1718\n",
+      "        65+       0.62      0.28      0.39       417\n",
+      "\n",
+      "avg / total       0.60      0.59      0.55      9769\n",
+      "\n",
+      "----Iteration 4  ----\n",
+      "RF7 accuracy = 0.605998566895\n",
+      "RF7 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  1.00      0.03      0.07       119\n",
+      "      17-34       0.75      0.68      0.71      4083\n",
+      "      35-49       0.51      0.80      0.62      3432\n",
+      "      50-64       0.57      0.15      0.23      1718\n",
+      "        65+       0.72      0.39      0.50       417\n",
+      "\n",
+      "avg / total       0.63      0.61      0.58      9769\n",
+      "\n",
+      "----Iteration 8  ----\n",
+      "RF7 accuracy = 0.600163783396\n",
+      "RF7 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  1.00      0.02      0.03       119\n",
+      "      17-34       0.75      0.67      0.71      4083\n",
+      "      35-49       0.50      0.80      0.61      3432\n",
+      "      50-64       0.57      0.14      0.22      1718\n",
+      "        65+       0.70      0.35      0.46       417\n",
+      "\n",
+      "avg / total       0.63      0.60      0.57      9769\n",
+      "\n",
+      "Mean Accuracy : 0.597686559525\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create an object that holds the third RF model with parameter adjustments\n",
+    "# The warm_start parameter reuses the solution of the previous model called and adds more estimators\n",
+    "\n",
+    "RF7 = RandomForestClassifier(max_depth=10, random_state=111, n_estimators=150, warm_start=True)\n",
+    "\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the RF2 above\n",
+    "iter_num=0\n",
+    "scores = []\n",
+    "# The indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  #train indices for X\n",
+    "    y_train = y_ages[train_indices]  #train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    #test indices for X\n",
+    "    y_test = y_ages[test_indices]    #test indices for y\n",
+    "    \n",
+    "    # Train the reusable KNN classifier on the training data\n",
+    "    RF7.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RF7.predict(X_test) #get the test set predictions \n",
+    "    scores.append(accuracy_score(y_test,y_hat))\n",
+    "    if (iter_num % 4) == 0:\n",
+    "        # Accuracy for the iterations of training/testing\n",
+    "        accuracy_RF7= accuracy_score(y_test,y_hat)\n",
+    "        print(\"----Iteration\",iter_num,\" ----\")          # print out each numbered interation \n",
+    "        print('RF7 accuracy =', accuracy_RF7)\n",
+    "\n",
+    "        # Metric report \n",
+    "        metrics_RF7 = classification_report(y_test,y_hat)\n",
+    "        print('RF7 metric report')\n",
+    "        print(metrics_RF7)\n",
+    "    iter_num+=1\n",
+    "    \n",
+    "print('Mean Accuracy : %s' % str(np.mean(scores)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 142,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "RF9 accuracy = 0.574879721568\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.58      0.55      0.56       119\n",
+      "      17-34       0.72      0.66      0.69      4083\n",
+      "      35-49       0.50      0.70      0.58      3432\n",
+      "      50-64       0.39      0.19      0.25      1718\n",
+      "        65+       0.53      0.35      0.42       417\n",
+      "\n",
+      "avg / total       0.57      0.57      0.56      9769\n",
+      "\n",
+      "----Iteration 1  ----\n",
+      "RF9 accuracy = 0.686457160405\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.66      0.56      0.61       119\n",
+      "      17-34       0.79      0.73      0.76      4083\n",
+      "      35-49       0.59      0.81      0.68      3432\n",
+      "      50-64       0.71      0.37      0.49      1718\n",
+      "        65+       0.85      0.63      0.72       417\n",
+      "\n",
+      "avg / total       0.71      0.69      0.68      9769\n",
+      "\n",
+      "----Iteration 2  ----\n",
+      "RF9 accuracy = 0.68369331559\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.65      0.56      0.60       119\n",
+      "      17-34       0.79      0.73      0.76      4083\n",
+      "      35-49       0.58      0.81      0.68      3432\n",
+      "      50-64       0.73      0.36      0.48      1718\n",
+      "        65+       0.84      0.62      0.71       417\n",
+      "\n",
+      "avg / total       0.71      0.68      0.68      9769\n",
+      "\n",
+      "----Iteration 3  ----\n",
+      "RF9 accuracy = 0.679189272188\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.71      0.61      0.65       119\n",
+      "      17-34       0.79      0.72      0.76      4083\n",
+      "      35-49       0.58      0.80      0.67      3432\n",
+      "      50-64       0.71      0.36      0.48      1718\n",
+      "        65+       0.80      0.60      0.68       417\n",
+      "\n",
+      "avg / total       0.70      0.68      0.67      9769\n",
+      "\n",
+      "----Iteration 4  ----\n",
+      "RF9 accuracy = 0.682976763231\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.74      0.64      0.68       119\n",
+      "      17-34       0.80      0.73      0.76      4083\n",
+      "      35-49       0.58      0.79      0.67      3432\n",
+      "      50-64       0.69      0.36      0.47      1718\n",
+      "        65+       0.84      0.64      0.73       417\n",
+      "\n",
+      "avg / total       0.70      0.68      0.68      9769\n",
+      "\n",
+      "----Iteration 5  ----\n",
+      "RF9 accuracy = 0.681953117003\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.72      0.62      0.67       119\n",
+      "      17-34       0.80      0.72      0.76      4083\n",
+      "      35-49       0.58      0.81      0.67      3432\n",
+      "      50-64       0.71      0.36      0.48      1718\n",
+      "        65+       0.81      0.60      0.69       417\n",
+      "\n",
+      "avg / total       0.71      0.68      0.68      9769\n",
+      "\n",
+      "----Iteration 6  ----\n",
+      "RF9 accuracy = 0.676425427372\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.68      0.66      0.67       119\n",
+      "      17-34       0.79      0.72      0.75      4083\n",
+      "      35-49       0.58      0.80      0.67      3432\n",
+      "      50-64       0.70      0.35      0.47      1718\n",
+      "        65+       0.83      0.61      0.70       417\n",
+      "\n",
+      "avg / total       0.70      0.68      0.67      9769\n",
+      "\n",
+      "----Iteration 7  ----\n",
+      "RF9 accuracy = 0.672637936329\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.68      0.56      0.61       119\n",
+      "      17-34       0.79      0.71      0.75      4083\n",
+      "      35-49       0.57      0.79      0.66      3432\n",
+      "      50-64       0.69      0.35      0.46      1718\n",
+      "        65+       0.80      0.65      0.72       417\n",
+      "\n",
+      "avg / total       0.69      0.67      0.67      9769\n",
+      "\n",
+      "----Iteration 8  ----\n",
+      "RF9 accuracy = 0.682362575494\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.73      0.62      0.67       119\n",
+      "      17-34       0.80      0.73      0.76      4083\n",
+      "      35-49       0.58      0.80      0.67      3432\n",
+      "      50-64       0.70      0.35      0.47      1718\n",
+      "        65+       0.81      0.59      0.68       417\n",
+      "\n",
+      "avg / total       0.70      0.68      0.67      9769\n",
+      "\n",
+      "----Iteration 9  ----\n",
+      "RF9 accuracy = 0.679496366056\n",
+      "RF9 metric report\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.71      0.58      0.64       119\n",
+      "      17-34       0.79      0.73      0.76      4083\n",
+      "      35-49       0.58      0.80      0.67      3432\n",
+      "      50-64       0.70      0.35      0.47      1718\n",
+      "        65+       0.81      0.57      0.67       417\n",
+      "\n",
+      "avg / total       0.70      0.68      0.67      9769\n",
+      "\n",
+      "0.670007165524\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create an object that holds the third RF model with parameter adjustments\n",
+    "# The warm_start parameter reuses the solution of the previous model called and adds more estimators\n",
+    "\n",
+    "RF9 = RandomForestClassifier(max_depth=20, random_state=111, n_estimators=225, warm_start=True)\n",
+    "\n",
+    "# Now we want to iterate through and grab the prediction, just like we did in the RF2 above\n",
+    "iter_num=0\n",
+    "scores = []\n",
+    "# The indices are the rows used for training and testing in each iteration\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  #train indices for X\n",
+    "    y_train = y_ages[train_indices]  #train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    #test indices for X\n",
+    "    y_test = y_ages[test_indices]    #test indices for y\n",
+    "    \n",
+    "    # Train the reusable KNN classifier on the training data\n",
+    "    RF9.fit(X_train,y_train)  # train object\n",
+    "    y_hat = RF9.predict(X_test) #get the test set predictions \n",
+    "    \n",
+    "    # Accuracy for the iterations of training/testing\n",
+    "    accuracy_RF9= accuracy_score(y_test,y_hat)\n",
+    "    print(\"----Iteration\",iter_num,\" ----\")          # print out each numbered interation \n",
+    "    print('RF9 accuracy =', accuracy_RF9)\n",
+    "\n",
+    "    # Metric report \n",
+    "    metrics_RF9 = classification_report(y_test,y_hat)\n",
+    "    print('RF9 metric report')\n",
+    "    print(metrics_RF9)\n",
+    "    scores.append(accuracy_score(y_test,y_hat))\n",
+    "    iter_num+=1\n",
+    "    \n",
+    "print(np.mean(scores))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 165,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "accr_ry = []\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  #train indices for X\n",
+    "    y_train = y_ages[train_indices]  #train indices for y\n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    #test indices for X\n",
+    "    y_test = y_ages[test_indices]    #test indices for y\n",
+    "\n",
+    "    y_hat = ab.predict(X_test)\n",
+    "    accuracy = accuracy_score(y_hat,y_test)\n",
+    "    accr_ry.append(accuracy)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 166,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[0.4967755143822295, 0.49564950353157949, 0.49698024362780224, 0.49083836626062033, 0.49513768041764766, 0.4850035827617975, 0.49196437711127033, 0.48991708465554307, 0.49186201248848399, 0.48981472003275667]\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(accr_ry)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "print (RF9)\n",
+    "\n",
+    "plt.barh(range(len(RF7.feature_importances_)), RF9.feature_importances_)\n",
+    "plt.show()\n",
+    "\n",
+    "income_ranforest_featureval = pd.DataFrame(RF9.feature_importances_,index=pd.get_dummies(df.drop(ag_drop,1)).columns)\n",
+    "\n",
+    "#top 10 feature importances\n",
+    "income_ranforest_featureval[0].sort_values(ascending=False)[:10]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Adaboost Classification for Age Groups"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 163,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.89      0.40      0.55       265\n",
+      "      17-34       0.64      0.71      0.67      3682\n",
+      "      35-49       0.70      0.49      0.58      4902\n",
+      "      50-64       0.15      0.39      0.22       672\n",
+      "        65+       0.31      0.52      0.39       248\n",
+      "\n",
+      "avg / total       0.63      0.56      0.58      9769\n",
+      "\n",
+      "             precision    recall  f1-score   support\n",
+      "\n",
+      "                  0.90      0.39      0.54       274\n",
+      "      17-34       0.62      0.71      0.66      3552\n",
+      "      35-49       0.62      0.50      0.55      4324\n",
+      "      50-64       0.29      0.36      0.32      1415\n",
+      "        65+       0.27      0.55      0.36       204\n",
+      "\n",
+      "avg / total       0.57      0.55      0.55      9769\n",
+      "\n",
+      "Mean Accuracy :  0.543597092845\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.ensemble import AdaBoostClassifier\n",
+    "\n",
+    "ab = AdaBoostClassifier()\n",
+    "\n",
+    "iteration = 1\n",
+    "scores = []\n",
+    "for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "    X_train = x_ages[train_indices]  # train indices for X          \n",
+    "    y_train = y_ages[train_indices]  # train indices for y         \n",
+    "    \n",
+    "    X_test = x_ages[test_indices]    # test indices for X\n",
+    "    y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "    # train the reusable KNN classifier on the training data\n",
+    "    ab.fit(X_train,y_train)  # train object\n",
+    "    y_hat = ab.predict(X_test) # get test set precitions\n",
+    "    \n",
+    "    scores.append(accuracy_score(y_hat,y_test))\n",
+    "    #lets print the 4th and the 8th iter to keep things viewable\n",
+    "    if len(scores)%4 == 0:\n",
+    "        print(classification_report(y_hat,y_test))\n",
+    "    \n",
+    "\n",
+    "print(\"Mean Accuracy : \", np.mean(scores))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 147,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# from sklearn.ensemble import AdaBoostClassifier\n",
+    "\n",
+    "# ab = AdaBoostClassifier(base_estimator=RandomForestClassifier(max_depth=20,\n",
+    "#                                                               random_state=111,\n",
+    "#                                                               n_estimators=225, warm_start=True))\n",
+    "\n",
+    "# iteration = 1\n",
+    "# scores = []\n",
+    "# for train_indices, test_indices in sss.split(x_ages,y_ages): \n",
+    "#     X_train = x_ages[train_indices]  # train indices for X          \n",
+    "#     y_train = y_ages[train_indices]  # train indices for y         \n",
+    "    \n",
+    "#     X_test = x_ages[test_indices]    # test indices for X\n",
+    "#     y_test = y_ages[test_indices]    # test indices for y\n",
+    "    \n",
+    "#     # train the reusable KNN classifier on the training data\n",
+    "#     ab.fit(X_train,y_train)  # train object\n",
+    "#     y_hat = ab.predict(X_test) # get test set precitions\n",
+    "    \n",
+    "#     scores.append(accuracy_score(y_hat,y_test))\n",
+    "#     #lets print the 4th and the 8th iter to keep things viewable\n",
+    "#     if len(scores)%4 == 0:\n",
+    "#         print('----------- Iteration %s -----------' % str(iteration))\n",
+    "#         print(classification_report(y_hat,y_test))\n",
+    "    \n",
+    "#     iteration += 1\n",
+    "# print(\"Mean Accuracy : \", np.mean(scores))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 148,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "KNN Error Rate = 16.47\n",
+      "----Iteration 1  ----\n",
+      "KNN Error Rate = 16.069999999999993\n",
+      "----Iteration 2  ----\n",
+      "KNN Error Rate = 16.689999999999998\n",
+      "----Iteration 3  ----\n",
+      "KNN Error Rate = 16.930000000000007\n",
+      "----Iteration 4  ----\n",
+      "KNN Error Rate = 16.700000000000003\n",
+      "----Iteration 5  ----\n",
+      "KNN Error Rate = 16.439999999999998\n",
+      "----Iteration 6  ----\n",
+      "KNN Error Rate = 16.22\n",
+      "----Iteration 7  ----\n",
+      "KNN Error Rate = 16.659999999999997\n",
+      "----Iteration 8  ----\n",
+      "KNN Error Rate = 16.25\n",
+      "----Iteration 9  ----\n",
+      "KNN Error Rate = 16.120000000000005\n",
+      "----Iteration 0  ----\n",
+      "RF Error Rate = 14.370000000000005\n",
+      "----Iteration 1  ----\n",
+      "RF Error Rate = 13.579999999999998\n",
+      "----Iteration 2  ----\n",
+      "RF Error Rate = 13.909999999999997\n",
+      "----Iteration 3  ----\n",
+      "RF Error Rate = 14.620000000000005\n",
+      "----Iteration 4  ----\n",
+      "RF Error Rate = 13.969999999999999\n",
+      "----Iteration 5  ----\n",
+      "RF Error Rate = 13.730000000000004\n",
+      "----Iteration 6  ----\n",
+      "RF Error Rate = 13.769999999999996\n",
+      "----Iteration 7  ----\n",
+      "RF Error Rate = 14.420000000000002\n",
+      "----Iteration 8  ----\n",
+      "RF Error Rate = 13.959999999999994\n",
+      "----Iteration 9  ----\n",
+      "RF Error Rate = 13.829999999999998\n",
+      "----Iteration 0  ----\n",
+      "BNB Error Rate = 25.599999999999994\n",
+      "----Iteration 1  ----\n",
+      "BNB Error Rate = 24.989999999999995\n",
+      "----Iteration 2  ----\n",
+      "BNB Error Rate = 25.769999999999996\n",
+      "----Iteration 3  ----\n",
+      "BNB Error Rate = 25.159999999999997\n",
+      "----Iteration 4  ----\n",
+      "BNB Error Rate = 24.900000000000006\n",
+      "----Iteration 5  ----\n",
+      "BNB Error Rate = 24.870000000000005\n",
+      "----Iteration 6  ----\n",
+      "BNB Error Rate = 25.17\n",
+      "----Iteration 7  ----\n",
+      "BNB Error Rate = 25.25\n",
+      "----Iteration 8  ----\n",
+      "BNB Error Rate = 25.950000000000003\n",
+      "----Iteration 9  ----\n",
+      "BNB Error Rate = 25.159999999999997\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculating the Error Rates of the three models \n",
+    "\n",
+    "# KNN Model\n",
+    "KNN_Accs = [83.53, 83.93, 83.31, 83.07, 83.30, 83.56, 83.78, 83.34, 83.75, 83.88]\n",
+    "\n",
+    "iter_num=0\n",
+    "for x in KNN_Accs:\n",
+    "    KNN_ER = 100-x\n",
+    "    print(\"----Iteration\",iter_num,\" ----\") \n",
+    "    print('KNN Error Rate =', KNN_ER)\n",
+    "    iter_num+=1\n",
+    "\n",
+    "# RF Model \n",
+    "RF_Accs = [85.63, 86.42, 86.09, 85.38, 86.03, 86.27, 86.23, 85.58, 86.04, 86.17]\n",
+    "\n",
+    "iter_num=0\n",
+    "for x in RF_Accs:\n",
+    "    RF_ER = 100-x\n",
+    "    print(\"----Iteration\",iter_num,\" ----\") \n",
+    "    print('RF Error Rate =', RF_ER)\n",
+    "    iter_num+=1\n",
+    "    \n",
+    "# BNB Model \n",
+    "BNB_Accs = [74.40, 75.01, 74.23, 74.84, 75.10, 75.13, 74.83, 74.75, 74.05, 74.84]\n",
+    "\n",
+    "iter_num=0\n",
+    "for x in BNB_Accs:\n",
+    "    BNB_ER = 100-x\n",
+    "    print(\"----Iteration\",iter_num,\" ----\") \n",
+    "    print('BNB Error Rate =', BNB_ER)\n",
+    "    iter_num+=1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 149,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[ 2.1   2.49  2.78  2.31  2.73  2.71  2.45  2.24  2.29  2.29]\n",
+      "[-9.13 -8.92 -9.08 -8.23 -8.2  -8.43 -8.95 -8.59 -9.7  -9.04]\n",
+      "[-11.23 -11.41 -11.86 -10.54 -10.93 -11.14 -11.4  -10.83 -11.99 -11.33]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculate the difference in the error rate bewteen each model comparsion\n",
+    "KNN_ER = np.array([16.47, 16.07, 16.69, 16.93, 16.7, 16.44, 16.22, 16.66, 16.25, 16.12])\n",
+    "RF_ER = np.array([14.37, 13.58, 13.91, 14.62, 13.97, 13.73, 13.77, 14.42, 13.96, 13.83])\n",
+    "BNB_ER = np.array([25.6, 24.99, 25.77, 25.16, 24.9, 24.87, 25.17, 25.25, 25.95, 25.16])\n",
+    "\n",
+    "# KNN to RF \n",
+    "Diff1 = KNN_ER - RF_ER\n",
+    "print(Diff1)\n",
+    "\n",
+    "# KNN to BNB\n",
+    "Diff2 = KNN_ER - BNB_ER\n",
+    "print(Diff2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "Diff3 = RF_ER - BNB_ER\n",
+    "print(Diff3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 150,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2.439\n",
+      "-8.827\n",
+      "-11.266\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculate the mean of the differance in Error Rates for each model comparison\n",
+    "\n",
+    "# KNN to RF \n",
+    "mean1 = np.mean(Diff1)\n",
+    "print(mean1)\n",
+    "\n",
+    "# KNN to BNB\n",
+    "mean2 = np.mean(Diff2)\n",
+    "print(mean2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "mean3 = np.mean(Diff3)\n",
+    "print(mean3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 151,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Variance for KNN & RF = 0.1341\n",
+      "Variance for KNN & BNB = 0.1917\n",
+      "Variance for RF & BNB = 0.0576\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculate the Variance of the differance in Error Rates for each model comparison\n",
+    "K = 10 \n",
+    "\n",
+    "# KNN to RF \n",
+    "for x in Diff1:\n",
+    "    y = x-mean1\n",
+    "    #print(y)\n",
+    "\n",
+    "sumy = np.sum(y)\n",
+    "# print(sumy)\n",
+    "\n",
+    "V = (1/K-1)*(sumy)\n",
+    "print('Variance for KNN & RF =', V)\n",
+    "\n",
+    "# KNN to BNB\n",
+    "for x in Diff2:\n",
+    "    y2 = x-mean2\n",
+    "    #print(y)\n",
+    "\n",
+    "sumy2 = np.sum(y2)\n",
+    "# print(sumy)\n",
+    "\n",
+    "V2 = (1/K-1)*(sumy2)\n",
+    "print('Variance for KNN & BNB =', V2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "for x in Diff3:\n",
+    "    y3 = x-mean3\n",
+    "    #print(y)\n",
+    "\n",
+    "sumy3 = np.sum(y3)\n",
+    "# print(sumy)\n",
+    "\n",
+    "V3 = (1/K-1)*(sumy3)\n",
+    "print('Variance for RF & BNB =', V3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 153,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Confidence Interval for KNN and RF is 2.36216006812 2.51583993188\n"
+     ]
+    }
+   ],
+   "source": [
+    "import math\n",
+    "# Calculate the Confidence Intervals for each comparison\n",
+    "K = 10\n",
+    "t_stat = 1.812\n",
+    "\n",
+    "# KNN to RF\n",
+    "l = 1/math.sqrt(K)*t_stat*V\n",
+    "\n",
+    "CI_plus = mean1 + l\n",
+    "CI_minus = mean1 - l\n",
+    "print('Confidence Interval for KNN and RF is', CI_minus, CI_plus)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 155,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Confidence Interval for KNN and BNB is -8.93684500329 -8.71715499671\n",
+      "Confidence Interval for RF and BNB is -11.2990050714 -11.2329949286\n"
+     ]
+    }
+   ],
+   "source": [
+    "# KNN to BNB\n",
+    "l = 1/math.sqrt(K)*t_stat*V2\n",
+    "\n",
+    "CI_plus2 = mean2 + l\n",
+    "CI_minus2 = mean2 - l\n",
+    "print('Confidence Interval for KNN and BNB is', CI_minus2, CI_plus2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "l = 1/math.sqrt(K)*t_stat*V3\n",
+    "\n",
+    "CI_plus3 = mean3 + l\n",
+    "CI_minus3 = mean3 - l\n",
+    "print('Confidence Interval for RF and BNB is', CI_minus3, CI_plus3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 170,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "----Iteration 0  ----\n",
+      "RF Error Rate = 0.425120278431774\n",
+      "----Iteration 1  ----\n",
+      "RF Error Rate = 0.31354283959463614\n",
+      "----Iteration 2  ----\n",
+      "RF Error Rate = 0.316306684409868\n",
+      "----Iteration 3  ----\n",
+      "RF Error Rate = 0.320810727812468\n",
+      "----Iteration 4  ----\n",
+      "RF Error Rate = 0.3170232367693725\n",
+      "----Iteration 5  ----\n",
+      "RF Error Rate = 0.31804688299723616\n",
+      "----Iteration 6  ----\n",
+      "RF Error Rate = 0.32357457262769984\n",
+      "----Iteration 7  ----\n",
+      "RF Error Rate = 0.32736206367079534\n",
+      "----Iteration 8  ----\n",
+      "RF Error Rate = 0.31763742450609067\n",
+      "----Iteration 9  ----\n",
+      "RF Error Rate = 0.32050363394410897\n",
+      "----Iteration 0  ----\n",
+      "Logistic Error Rate = 0.418671307196233\n",
+      "----Iteration 1  ----\n",
+      "Logistic Error Rate = 0.4172382024772239\n",
+      "----Iteration 2  ----\n",
+      "Logistic Error Rate = 0.41672637936329204\n",
+      "----Iteration 3  ----\n",
+      "Logistic Error Rate = 0.4237895383355512\n",
+      "----Iteration 4  ----\n",
+      "Logistic Error Rate = 0.41519091002149655\n",
+      "----Iteration 5  ----\n",
+      "Logistic Error Rate = 0.4211280581431057\n",
+      "----Iteration 6  ----\n",
+      "Logistic Error Rate = 0.4283959463609377\n",
+      "----Iteration 7  ----\n",
+      "Logistic Error Rate = 0.42430136144948305\n",
+      "----Iteration 8  ----\n",
+      "Logistic Error Rate = 0.41785239021394205\n",
+      "----Iteration 9  ----\n",
+      "Logistic Error Rate = 0.4215375166342512\n",
+      "----Iteration 0  ----\n",
+      "AdaBoost Error Rate = 0.5032244856177706\n",
+      "----Iteration 1  ----\n",
+      "AdaBoost Error Rate = 0.5043504964684205\n",
+      "----Iteration 2  ----\n",
+      "AdaBoost Error Rate = 0.5030197563721978\n",
+      "----Iteration 3  ----\n",
+      "AdaBoost Error Rate = 0.5091616337393796\n",
+      "----Iteration 4  ----\n",
+      "AdaBoost Error Rate = 0.5048623195823523\n",
+      "----Iteration 5  ----\n",
+      "AdaBoost Error Rate = 0.5149964172382024\n",
+      "----Iteration 6  ----\n",
+      "AdaBoost Error Rate = 0.5080356228887297\n",
+      "----Iteration 7  ----\n",
+      "AdaBoost Error Rate = 0.5100829153444569\n",
+      "----Iteration 8  ----\n",
+      "AdaBoost Error Rate = 0.508137987511516\n",
+      "----Iteration 9  ----\n",
+      "AdaBoost Error Rate = 0.5101852799672433\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculating the Error Rates of the three models \n",
+    "\n",
+    "# KNN Model\n",
+    "Random_Forest = [0.57487972156822598, 0.68645716040536386, 0.68369331559013202, 0.679189272187532,\n",
+    "                 0.6829767632306275, 0.68195311700276384, 0.67642542737230016, 0.67263793632920466,\n",
+    "                 0.68236257549390933, 0.67949636605589103]\n",
+    "\n",
+    "rf_array = []\n",
+    "iter_num=0\n",
+    "for x in Random_Forest:\n",
+    "    KNN_ER = 1-x\n",
+    "    print(\"----Iteration\",iter_num,\" ----\") \n",
+    "    print('RF Error Rate =', KNN_ER)\n",
+    "    iter_num+=1\n",
+    "    rf_array.append(KNN_ER)\n",
+    "    \n",
+    "\n",
+    "# RF Model \n",
+    "logistic = [0.58132869280376698, 0.58276179752277613, 0.58327362063670796, 0.57621046166444878,\n",
+    "           0.58480908997850345,0.57887194185689428,\n",
+    "           0.5716040536390623, 0.57569863855051695, 0.58214760978605795, 0.57846248336574879]\n",
+    "\n",
+    "logarray = []\n",
+    "iter_num=0\n",
+    "for x in logistic:\n",
+    "    RF_ER = 1-x\n",
+    "    print(\"----Iteration\",iter_num,\" ----\") \n",
+    "    print('Logistic Error Rate =', RF_ER)\n",
+    "    iter_num+=1\n",
+    "    logarray.append(RF_ER)\n",
+    "    \n",
+    "# BNB Model \n",
+    "BNB_Accs = [0.4967755143822295, 0.49564950353157949, 0.49698024362780224, 0.49083836626062033,\n",
+    "            0.49513768041764766, 0.4850035827617975,\n",
+    "            0.49196437711127033, 0.48991708465554307, 0.49186201248848399, 0.48981472003275667]\n",
+    "\n",
+    "ada_array = []\n",
+    "iter_num=0\n",
+    "for x in BNB_Accs:\n",
+    "    BNB_ER = 1-x\n",
+    "    print(\"----Iteration\",iter_num,\" ----\") \n",
+    "    print('AdaBoost Error Rate =', BNB_ER)\n",
+    "    iter_num+=1\n",
+    "    ada_array.append(BNB_ER)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 172,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[0.5032244856177706, 0.5043504964684205, 0.5030197563721978, 0.5091616337393796, 0.5048623195823523, 0.5149964172382024, 0.5080356228887297, 0.5100829153444569, 0.508137987511516, 0.5101852799672433] \n",
+      " \n",
+      "\n",
+      "[0.425120278431774, 0.31354283959463614, 0.316306684409868, 0.320810727812468, 0.3170232367693725, 0.31804688299723616, 0.32357457262769984, 0.32736206367079534, 0.31763742450609067, 0.32050363394410897] \n",
+      " \n",
+      "\n",
+      "[0.418671307196233, 0.4172382024772239, 0.41672637936329204, 0.4237895383355512, 0.41519091002149655, 0.4211280581431057, 0.4283959463609377, 0.42430136144948305, 0.41785239021394205, 0.4215375166342512] \n",
+      " \n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(ada_array, '\\n \\n')\n",
+    "\n",
+    "print(rf_array, '\\n \\n')\n",
+    "\n",
+    "print(logarray, '\\n \\n')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 173,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[-0.00644897  0.10369536  0.10041969  0.10297881  0.09816767  0.10308118\n",
+      "  0.10482137  0.0969393   0.10021497  0.10103388]\n",
+      "[-0.08455318 -0.08711229 -0.08629338 -0.0853721  -0.08967141 -0.09386836\n",
+      " -0.07963968 -0.08578155 -0.0902856  -0.08864776]\n",
+      "[-0.07810421 -0.19080766 -0.18671307 -0.18835091 -0.18783908 -0.19694953\n",
+      " -0.18446105 -0.18272085 -0.19050056 -0.18968165]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculate the difference in the error rate bewteen each model comparsion\n",
+    "LOGI_ER = np.array([0.418671307196233, 0.4172382024772239, 0.41672637936329204, 0.4237895383355512, 0.41519091002149655, 0.4211280581431057, 0.4283959463609377, 0.42430136144948305, 0.41785239021394205, 0.4215375166342512] )\n",
+    "RF_ER = np.array([0.425120278431774, 0.31354283959463614, 0.316306684409868, 0.320810727812468, 0.3170232367693725, 0.31804688299723616, 0.32357457262769984, 0.32736206367079534, 0.31763742450609067, 0.32050363394410897])\n",
+    "ADA_ER = np.array([0.5032244856177706, 0.5043504964684205, 0.5030197563721978, 0.5091616337393796, 0.5048623195823523, 0.5149964172382024, 0.5080356228887297, 0.5100829153444569, 0.508137987511516, 0.5101852799672433])\n",
+    "\n",
+    "# KNN to RF \n",
+    "Diff1 = LOGI_ER - RF_ER\n",
+    "print(Diff1)\n",
+    "\n",
+    "# KNN to BNB\n",
+    "Diff2 = LOGI_ER - ADA_ER\n",
+    "print(Diff2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "Diff3 = RF_ER - ADA_ER\n",
+    "print(Diff3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 174,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.0904903265431\n",
+      "-0.0871225304535\n",
+      "-0.177612856997\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculate the mean of the differance in Error Rates for each model comparison\n",
+    "\n",
+    "# KNN to RF \n",
+    "mean1 = np.mean(Diff1)\n",
+    "print(mean1)\n",
+    "\n",
+    "# KNN to BNB\n",
+    "mean2 = np.mean(Diff2)\n",
+    "print(mean2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "mean3 = np.mean(Diff3)\n",
+    "print(mean3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 175,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Variance for LOGI & RF = -0.0094892005323\n",
+      "Variance for LOGI & ADA = 0.00137270959157\n",
+      "Variance for RF & ADA = 0.0108619101239\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculate the Variance of the differance in Error Rates for each model comparison\n",
+    "K = 10 \n",
+    "\n",
+    "# KNN to RF \n",
+    "for x in Diff1:\n",
+    "    y = x-mean1\n",
+    "    #print(y)\n",
+    "\n",
+    "sumy = np.sum(y)\n",
+    "# print(sumy)\n",
+    "\n",
+    "V = (1/K-1)*(sumy)\n",
+    "print('Variance for LOGI & RF =', V)\n",
+    "\n",
+    "# KNN to BNB\n",
+    "for x in Diff2:\n",
+    "    y2 = x-mean2\n",
+    "    #print(y)\n",
+    "\n",
+    "sumy2 = np.sum(y2)\n",
+    "# print(sumy)\n",
+    "\n",
+    "V2 = (1/K-1)*(sumy2)\n",
+    "print('Variance for LOGI & ADA =', V2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "for x in Diff3:\n",
+    "    y3 = x-mean3\n",
+    "    #print(y)\n",
+    "\n",
+    "sumy3 = np.sum(y3)\n",
+    "# print(sumy)\n",
+    "\n",
+    "V3 = (1/K-1)*(sumy3)\n",
+    "print('Variance for RF & ADA =', V3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 176,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Confidence Interval for KNN and RF is 0.0959276831615 0.0850529699248\n"
+     ]
+    }
+   ],
+   "source": [
+    "import math\n",
+    "# Calculate the Confidence Intervals for each comparison\n",
+    "K = 10\n",
+    "t_stat = 1.812\n",
+    "\n",
+    "# KNN to RF\n",
+    "l = 1/math.sqrt(K)*t_stat*V\n",
+    "\n",
+    "CI_plus = mean1 + l\n",
+    "CI_minus = mean1 - l\n",
+    "print('Confidence Interval for LOGI and RF is', CI_minus, CI_plus)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 177,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Confidence Interval for LOGI and ADA is -0.0879090995177 -0.0863359613893\n",
+      "Confidence Interval for RF and ADA is -0.183836782679 -0.171388931314\n"
+     ]
+    }
+   ],
+   "source": [
+    "# KNN to BNB\n",
+    "l = 1/math.sqrt(K)*t_stat*V2\n",
+    "\n",
+    "CI_plus2 = mean2 + l\n",
+    "CI_minus2 = mean2 - l\n",
+    "print('Confidence Interval for LOGI and ADA is', CI_minus2, CI_plus2)\n",
+    "\n",
+    "# RF to BNB\n",
+    "l = 1/math.sqrt(K)*t_stat*V3\n",
+    "\n",
+    "CI_plus3 = mean3 + l\n",
+    "CI_minus3 = mean3 - l\n",
+    "print('Confidence Interval for RF and ADA is', CI_minus3, CI_plus3)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true
+   },
+   "source": [
+    "## Income Binary Modeling - Results, Advantages & Attribute Analysis\n",
+    "\n",
+    "### Best Model\n",
+    "\n",
+    "Our best model was a random forest named RF7, which used the following hyperparameters:\n",
+    "* max_depth = 10\n",
+    "* n_estimators = 150\n",
+    "* warm_start = True\n",
+    "\n",
+    "\n",
+    "With an accuracy of 86.0%, this model has the highest out of those we tested. These included random forest, Gaussian naive bayes, Bernoulli naive bayes, K-Nearest Neighbors and K-Nearest Neighbors with PCA.\n",
+    "\n",
+    "### Advantages of Each - Confidence Intervals\n",
+    "\n",
+    "Confidence Interval for KNN and RF is 2.36216006812 2.51583993188\n",
+    "Confidence Interval for KNN and BNB is -8.93684500329 -8.71715499671\n",
+    "Confidence Interval for RF and BNB is -11.2990050714 -11.2329949286\n",
+    "\n",
+    "### Attribute Analysis\n",
+    "\n",
+    "## Age Groups Modeling - Results, Advantages & Attribute Analysis\n",
+    "\n",
+    "### Best Model\n",
+    "\n",
+    "Our best model is a random forest that drastically outperforms other models with 67% accuracy.\n",
+    "\n",
+    "### Advantages of Each - Confidence Intervals\n",
+    "\n",
+    "Confidence Interval for KNN and RF is 0.0959276831615 0.0850529699248\n",
+    "Confidence Interval for LOGI and ADA is -0.0879090995177 -0.0863359613893\n",
+    "Confidence Interval for RF and ADA is -0.183836782679 -0.171388931314\n",
+    "\n",
+    "\n",
+    "### Attribute Analysis\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Deployment \n",
+    "\n",
+    "Our model provides some insights into what types of data are most useful when trying to fill in gaps of information common in census data. This makes our models useful for parties that want to determine how to keep costs low when sampling or for parties that already have data, with pieces incomplete.\n",
+    "\n",
+    "Entities that are likely to face these problems would be governmental agencys, economic think tanks, and research agencys determining how to structure an economic policy so that it will produce the desired effect. In these circumstances, the model would need to be retrained on the pre-existing data that is most relveant and desirable for the cause. The visualization and attribute exploration done above should be reproduced when using different data to review what attributes are useful. \n",
+    "\n",
+    "Because of changes in data quality over time, our models will not hold for present day data, but our general framework will. Users should consider the techniques we have used, including:\n",
+    "\n",
+    "* bucketing class variables to be more concise\n",
+    "* dropping unneccessary variables\n",
+    "* stratified sample splits on training and test data\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Exceptional Work\n",
+    "## Neural Net Classifier with Tensorflow\n",
+    "For our exceptional work our team attempted to implement a neural net classifier for our *income_binary* variable and a neural net autoencoder that would reduce dimensionality. As shown below, the neural net classifier did not outperform our random forest model chosen above. \n",
+    "\n",
+    "This could be do to a few factors. The first is that the sample size is not large enough learn strong enough patterns to provide high accuracy The second is that we were unable to tune our hyperparameters appropriately. While we attempted to change the learning rate and batch size, we were unable to fiscover\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# delete unwanted variables from x and setup to be used in classifier\n",
+    "y_nn = pd.get_dummies(df['income_binary']).values\n",
+    "\n",
+    "ib_drop = ['income_binary','workclass','education','education_num',\n",
+    "             'marital_status','occupation','native_country','Unnamed: 0']\n",
+    "x_nn = df.drop(ib_drop,1)\n",
+    "x_nn = pd.get_dummies(x_nn).values\n",
+    "\n",
+    "#leaving standard sclaer out of this\n",
+    "#x_income = StandardScaler().fit_transform(x_income)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(48842, 41)"
+      ]
+     },
+     "execution_count": 31,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "np.shape(x_nn)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "import tensorflow as tf\n",
+    "from tensorflow.contrib.layers import fully_connected\n",
+    "\n",
+    "def next_batch(num, data):\n",
+    "    '''\n",
+    "    Return a total of `num` random samples and labels. \n",
+    "    '''\n",
+    "    idx = np.arange(0 , len(data))\n",
+    "    np.random.shuffle(idx)\n",
+    "    idx = idx[:num]\n",
+    "    data_shuffle = [data[ i] for i in idx]\n",
+    "\n",
+    "    return np.asarray(data_shuffle)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 59,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "# Parameters\n",
+    "learning_rate = 0.01\n",
+    "num_steps = 500\n",
+    "batch_size = 1000\n",
+    "display_step = 100\n",
+    "\n",
+    "# Network Parameters\n",
+    "n_hidden_1 = 100 # 1st layer number of neurons\n",
+    "n_hidden_2 = 50 # 2nd layer number of neurons\n",
+    "num_input = 41 # MNIST data input (img shape: 28*28)\n",
+    "num_classes = 2 # MNIST total classes (0-9 digits)\n",
+    "\n",
+    "# tf Graph input\n",
+    "X = tf.placeholder(\"float\", [None, num_input])\n",
+    "Y = tf.placeholder(\"float\", [None, num_classes])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 60,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Store layers weight & bias\n",
+    "weights = {\n",
+    "    'h1': tf.Variable(tf.random_normal([num_input, n_hidden_1])),\n",
+    "    'h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),\n",
+    "    'out': tf.Variable(tf.random_normal([n_hidden_2, num_classes]))\n",
+    "}\n",
+    "biases = {\n",
+    "    'b1': tf.Variable(tf.random_normal([n_hidden_1])),\n",
+    "    'b2': tf.Variable(tf.random_normal([n_hidden_2])),\n",
+    "    'out': tf.Variable(tf.random_normal([num_classes]))\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 61,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Create model\n",
+    "def neural_net(x):\n",
+    "    # Hidden fully connected layer with 256 neurons\n",
+    "    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])\n",
+    "    # Hidden fully connected layer with 256 neurons\n",
+    "    layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])\n",
+    "    # Output fully connected layer with a neuron for each class\n",
+    "    out_layer = tf.matmul(layer_2, weights['out']) + biases['out']\n",
+    "    return out_layer"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 62,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Construct model\n",
+    "logits = neural_net(X)\n",
+    "\n",
+    "# Define loss and optimizer\n",
+    "loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(\n",
+    "    logits=logits, labels=Y))\n",
+    "optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)\n",
+    "train_op = optimizer.minimize(loss_op)\n",
+    "\n",
+    "# Evaluate model (with test logits, for dropout to be disabled)\n",
+    "correct_pred = tf.equal(tf.argmax(logits, 1), tf.argmax(Y, 1))\n",
+    "accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))\n",
+    "\n",
+    "# Initialize the variables (i.e. assign their default value)\n",
+    "init = tf.global_variables_initializer()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 63,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "TRAIN: [14876 22320 41985 ..., 19522 28814 36387] TEST: [29738 44261 34830 ..., 12340 37898 13833]\n",
+      "TRAIN: [29628 28812  9156 ..., 48484 39868 28157] TEST: [32354 31246  7467 ..., 32134 45296 19815]\n",
+      "TRAIN: [46315 27749 35701 ..., 31999 28258 30895] TEST: [ 4677 38297  4912 ..., 40101 42037 47325]\n",
+      "TRAIN: [46672 34976  4341 ..., 15969 27786 26581] TEST: [37091  4457  3749 ..., 36106   552 41663]\n",
+      "TRAIN: [30957 37681  4013 ...,  3715 18167  5620] TEST: [28726 31585 10034 ..., 18672 13453 21320]\n",
+      "TRAIN: [35202 31504   951 ..., 22581  9973 12807] TEST: [41724 16612 44504 ..., 43412 32533 27102]\n",
+      "TRAIN: [37272 33088 26421 ..., 18102 24409 39839] TEST: [  902 19885 28710 ..., 47220 47624  2630]\n",
+      "TRAIN: [ 8007 24612 33169 ..., 23413 33596 39920] TEST: [23701 18082 47214 ..., 48030  8495 46476]\n",
+      "TRAIN: [16291 40068 30544 ..., 36051  3037 43803] TEST: [24803 15997 21867 ..., 19729  8425 38141]\n",
+      "TRAIN: [29930 16988 33292 ..., 39480 20668 44948] TEST: [23889 38609 11707 ..., 34482  6608 28111]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# this is already in memory but lets put this here again to be explicit!\n",
+    "# we will train on the last instance produced by the loop\n",
+    "sss = StratifiedShuffleSplit(n_splits=10, test_size=0.20, random_state=111)\n",
+    "\n",
+    "# Create a for loop that grabs the values for each fold for traing and test sets\n",
+    "for train_index, test_index in sss.split(x_nn, y_nn):\n",
+    "    print(\"TRAIN:\", train_index, \"TEST:\", test_index)\n",
+    "    X_nn_train, X_nn_test = x_nn[train_index], x_nn[test_index]\n",
+    "    y_nn_train, y_nn_test = y_nn[train_index], y_nn[test_index]\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 64,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Step 1, Minibatch Loss= 60446.1523, Training Accuracy= 0.394\n",
+      "Step 100, Minibatch Loss= 913.7048, Training Accuracy= 0.751\n",
+      "Step 200, Minibatch Loss= 235.5276, Training Accuracy= 0.779\n",
+      "Step 300, Minibatch Loss= 4512.6572, Training Accuracy= 0.757\n",
+      "Step 400, Minibatch Loss= 17392.1543, Training Accuracy= 0.752\n",
+      "Step 500, Minibatch Loss= 4174.5249, Training Accuracy= 0.268\n",
+      "Optimization Finished!\n",
+      "Testing Accuracy: 0.246289\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Start training\n",
+    "with tf.Session() as sess:\n",
+    "\n",
+    "    # Run the initializer\n",
+    "    sess.run(init)\n",
+    "\n",
+    "    for step in range(1, num_steps+1):\n",
+    "        batch_x, batch_y = next_batch(batch_size,X_nn_train.tolist()), next_batch(batch_size,y_nn_train.tolist())\n",
+    "        # Run optimization op (backprop)\n",
+    "        sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})\n",
+    "        if step % display_step == 0 or step == 1:\n",
+    "            # Calculate batch loss and accuracy\n",
+    "            loss, acc = sess.run([loss_op, accuracy], feed_dict={X: batch_x,\n",
+    "                                                                 Y: batch_y})\n",
+    "            print(\"Step \" + str(step) + \", Minibatch Loss= \" + \\\n",
+    "                  \"{:.4f}\".format(loss) + \", Training Accuracy= \" + \\\n",
+    "                  \"{:.3f}\".format(acc))\n",
+    "\n",
+    "    print(\"Optimization Finished!\")\n",
+    "\n",
+    "    # Calculate accuracy for MNIST test images\n",
+    "    print(\"Testing Accuracy:\", \\\n",
+    "        sess.run(accuracy, feed_dict={X: X_test,\n",
+    "                                      Y: y_test}))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# (FAILED) Tensorflow Autoencoder w/ Our Best Model\n",
+    "\n",
+    "Using neural network autoencoding will provide us dimensionlity reduction, like PCA, with the primary difference being that we can use non-linear activation functions and unique cost functions. By adding more layers to our autoencoder, we can learn more complex encodings that may provide benefits over PCA. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 71,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Import for spliting the data set\n",
+    "\n",
+    "ib_drop = ['income_binary','workclass','education','education_num',\n",
+    "             'marital_status','occupation','native_country','Unnamed: 0']\n",
+    "x_ac = df.drop(ib_drop,1)\n",
+    "x_ac = pd.get_dummies(x_ac).values\n",
+    "x_ac = StandardScaler().fit_transform(x_ac)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 72,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(48842, 45)"
+      ]
+     },
+     "execution_count": 72,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "np.shape(x_ac)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 73,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Training Parameters\n",
+    "learning_rate = 0.015\n",
+    "num_steps = 30000\n",
+    "batch_size = 2000\n",
+    "\n",
+    "display_step = 1000\n",
+    "examples_to_show = 10\n",
+    "\n",
+    "# Network Parameters\n",
+    "num_hidden_1 = 30 # 1st layer num features\n",
+    "num_hidden_2 = 10 # 2nd layer num features (the latent dim)\n",
+    "num_input = 45 # MNIST data input (img shape: 28*28)\n",
+    "\n",
+    "# tf Graph input, a row of data from x_train (41 features)\n",
+    "X = tf.placeholder(\"float\", [None, num_input])\n",
+    "\n",
+    "weights = {\n",
+    "    'encoder_h1': tf.Variable(tf.random_normal([num_input, num_hidden_1])),\n",
+    "    'encoder_h2': tf.Variable(tf.random_normal([num_hidden_1, num_hidden_2])),\n",
+    "    'decoder_h1': tf.Variable(tf.random_normal([num_hidden_2, num_hidden_1])),\n",
+    "    'decoder_h2': tf.Variable(tf.random_normal([num_hidden_1, num_input])),\n",
+    "}\n",
+    "biases = {\n",
+    "    'encoder_b1': tf.Variable(tf.random_normal([num_hidden_1])),\n",
+    "    'encoder_b2': tf.Variable(tf.random_normal([num_hidden_2])),\n",
+    "    'decoder_b1': tf.Variable(tf.random_normal([num_hidden_1])),\n",
+    "    'decoder_b2': tf.Variable(tf.random_normal([num_input])),\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 74,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Building the encoder\n",
+    "def encoder(x):\n",
+    "    # Encoder Hidden layer with sigmoid activation #1\n",
+    "    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['encoder_h1']),\n",
+    "                                   biases['encoder_b1']))\n",
+    "    # Encoder Hidden layer with sigmoid activation #2\n",
+    "    layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['encoder_h2']),\n",
+    "                                   biases['encoder_b2']))\n",
+    "    return layer_2\n",
+    "\n",
+    "\n",
+    "# Building the decoder\n",
+    "def decoder(x):\n",
+    "    # Decoder Hidden layer with sigmoid activation #1\n",
+    "    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['decoder_h1']),\n",
+    "                                   biases['decoder_b1']))\n",
+    "    # Decoder Hidden layer with sigmoid activation #2\n",
+    "    layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['decoder_h2']),\n",
+    "                                   biases['decoder_b2']))\n",
+    "    return layer_2\n",
+    "\n",
+    "# Construct model\n",
+    "encoder_op = encoder(X)\n",
+    "decoder_op = decoder(encoder_op)\n",
+    "\n",
+    "# Prediction\n",
+    "y_pred = decoder_op\n",
+    "# Targets (Labels) are the input data.\n",
+    "y_true = X\n",
+    "\n",
+    "# Define loss and optimizer, minimize the squared error\n",
+    "loss = tf.reduce_mean(tf.pow(y_true - y_pred, 2))\n",
+    "optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(loss)\n",
+    "\n",
+    "# Initialize the variables (i.e. assign their default value)\n",
+    "init = tf.global_variables_initializer()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 75,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Step 1: Minibatch Loss: 1.319393\n",
+      "Step 1000: Minibatch Loss: 0.664561\n",
+      "Step 2000: Minibatch Loss: 0.646723\n",
+      "Step 3000: Minibatch Loss: 0.682333\n",
+      "Step 4000: Minibatch Loss: 0.694440\n",
+      "Step 5000: Minibatch Loss: 0.660595\n",
+      "Step 6000: Minibatch Loss: 0.639448\n",
+      "Step 7000: Minibatch Loss: 0.619845\n",
+      "Step 8000: Minibatch Loss: 0.653973\n",
+      "Step 9000: Minibatch Loss: 0.624597\n",
+      "Step 10000: Minibatch Loss: 0.664838\n",
+      "Step 11000: Minibatch Loss: 0.646613\n",
+      "Step 12000: Minibatch Loss: 0.684008\n",
+      "Step 13000: Minibatch Loss: 0.659164\n",
+      "Step 14000: Minibatch Loss: 0.652565\n",
+      "Step 15000: Minibatch Loss: 0.648556\n",
+      "Step 16000: Minibatch Loss: 0.631250\n",
+      "Step 17000: Minibatch Loss: 0.622359\n",
+      "Step 18000: Minibatch Loss: 0.635565\n",
+      "Step 19000: Minibatch Loss: 0.696282\n",
+      "Step 20000: Minibatch Loss: 0.635496\n",
+      "Step 21000: Minibatch Loss: 0.639681\n",
+      "Step 22000: Minibatch Loss: 0.647339\n",
+      "Step 23000: Minibatch Loss: 0.650769\n",
+      "Step 24000: Minibatch Loss: 0.721830\n",
+      "Step 25000: Minibatch Loss: 0.628616\n",
+      "Step 26000: Minibatch Loss: 0.665812\n",
+      "Step 27000: Minibatch Loss: 0.644061\n",
+      "Step 28000: Minibatch Loss: 0.658500\n",
+      "Step 29000: Minibatch Loss: 0.641499\n",
+      "Step 30000: Minibatch Loss: 0.660029\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Start Training\n",
+    "# Start a new TF session\n",
+    "sess = tf.Session()\n",
+    "\n",
+    "# Run the initializer\n",
+    "sess.run(init)\n",
+    "\n",
+    "# Training\n",
+    "for i in range(1, num_steps+1):\n",
+    "    # Prepare Data\n",
+    "    # Get batch\n",
+    "    batch_x = next_batch(batch_size,x_ac)\n",
+    "\n",
+    "    # Run optimization op (backprop) and cost op (to get loss value)\n",
+    "    _, l = sess.run([optimizer, loss], feed_dict={X: batch_x})\n",
+    "    # Display logs per step\n",
+    "    if i % display_step == 0 or i == 1:\n",
+    "        print('Step %i: Minibatch Loss: %f' % (i, l))"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

@@ -1,0 +1,58 @@
+---
+title: "Plots"
+author: "Tim McWilliams"
+date: "December 2, 2017"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+df_numeric <- read.csv('./numeric_clean.csv')
+```
+
+## Plots
+
+### When looking at the frequency of items sold per month we can conclude that there are more items sold at the end of the year. Specifically, October through December. There is also a high frequency of items sold in January. This is because of the holidays. In November people are buying things for Christmas or Hanukah. In January, people continue buying items with their money from the holidays. 
+
+```{r echo=FALSE}
+# Month Sold
+hist(df_numeric$month_sold, col = "blue", main = "Items sold per Month", xlab = "Month Sold", xlim = c(1,12), breaks = 12)
+```
+ 
+### The items sold per day tells a compelling story. More items were sold on the 1st day of the month and then gradually decreases as the month progresses. There were around 34,000 items sold in on the first of the month. After the first, the next highest items sold per day was the seventh at around 25,000 items. 
+
+```{r echo=FALSE}
+# Day sold
+hist(df_numeric$day, main = "Items sold per Day", col = "red", xlab = "Day Sold", xlim = c(1,31), breaks = 31)
+```
+
+### The unit prices were categorized into five different levels. Price level 1 represents the least expensive items, $0.00 to $0.86. Price level 2 represents items that are priced between $0.85 and $1.65. Price level 3 represents items that are between $1.65 and $2.59. Price level 4 represents items that cost between $2.59 and $4.95. Price level 5 represents items that are in between $4.95 and $38,970.0. The most items that were bought are in price level 4, 123,061 items. The least amount of items that were bought are in price level 5, 92,709 items.
+
+```{r echo=FALSE}
+# Price Groups
+counts2 = table(df_numeric$price_groups)
+names(counts2) <- c("", "Price Level 1 - 113,124", "Price Level 2 - 119,971", "Price Level 3 - 93,042", 
+                    "Price Level 4 - 123,061", "Price Level 5 - 92,709")
+pie(counts2, main = "Frequency of Price Levels (1-5)", col = c("cornsilk","purple", "yellow", 
+                                                               "cyan", "white", "red")) 
+```
+
+### The quantity of items purchased was combined into five categories; quantity level 1, 2, 3, 4, and 5. Quantity level 1 represents the quantity of items that were bought between 0 and 1.99. Quantity level s represents the quantity of items that were bought between 1.99 and 2.01. Quantity level 3 represents the quantity of items that were bought between 2.01 and 6. Quantity level 4 represents the quantity of items that were bought between 6 and 13. Quantity level 5 represents the quantity of items that were bought between 13 and 80,995. The group with the highest frequency purchased is quantity level 1. The group with the lowest frequency of items purchased is quantity level 5. 
+
+
+```{r echo=FALSE}
+
+# Quantity Groups
+counts3 = table(df_numeric$quantity_groups)
+names(counts3) <- c("","Quantity Level 1 - 158,850", "Quantity Level 2 - 81,829", 
+                    "Quantity Level 3 - 128,230", "Quantity Level 4 - 102,972",
+                    "Quantity Level 5 - 70,027")
+pie(counts3, main = "Frequency of Quantity Levels (1-5)", col = c("purple", "yellow", 
+                                                               "orange", "blue", "green")) 
+
+```
+
+
